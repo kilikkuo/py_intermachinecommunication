@@ -1,0 +1,5 @@
+
+OP_CONNECTION_BEGIN = "CNXBegin"
+OP_DATA_BEGIN       = "DTBegin"
+OP_DATA_END         = "DTEnd"
+OP_CONNECTION_END   = "CNXEnd"
