@@ -12,7 +12,7 @@ class Server():
         self.socket.bind(address)
         self.socket.listen(max_client)
         self.clients = {}
-        self.t = None
+        self.thread = None
         self.evt_break = threading.Event()
         self.evt_break.clear()
 
@@ -20,6 +20,7 @@ class Server():
 
     def close_connections(self):
         try:
+            print("Closing connections ...")
             while len(self.clients) > 0:
                 a, c = self.clients.popitem()
                 c.close()
@@ -28,10 +29,11 @@ class Server():
             traceback.print_exc()
 
     def shutdown(self):
+        print("Shutting down ...")
         self.close_connections()
-        if self.t:
+        if self.thread:
             self.evt_break.set()
-            self.t.join()
+            self.thread.join()
 
     def run_server(self):
         print("run_server ...")
@@ -40,13 +42,13 @@ class Server():
                 client, addr = (self.socket.accept())
                 print("[%s] Connected !"%(str(addr)))
                 self.clients[addr] = client
-                if self.t == None:
-                    self.t = threading.Thread(target=self.loop)
-                    self.t.daemon = True
-                    self.t.start()
+                if self.thread == None:
+                    self.thread = threading.Thread(target=self.loop)
+                    self.thread.daemon = True
+                    self.thread.start()
                 time.sleep(10)
             except:
-                print(" Get exception ..... break")
+                print("[Exception] waiting for connection >>> break")
                 break
         self.shutdown()
 
@@ -55,30 +57,17 @@ class Server():
             db_idx = msg.find(OP_DATA_BEGIN)
             de_idx = msg.find(OP_DATA_END)
             if db_idx >= 0 and de_idx >= 0:
-                print (" >>>>>>>>>>>>>> GOT TASK !!")
                 task_msg = msg[db_idx:de_idx+5]
-                print(task_msg)
+                msg_c(a, task_msg)
                 self.clients_temp_data[a] = ""
         pass
 
     def check_for_recv(self):
         for a, c in self.clients.items():
-            data = c.recv(20)
+            data = c.recv(2028)
             msg = data.decode("UTF-8")
             if msg:
                 self.clients_temp_data[a] = self.clients_temp_data.get(a, "") + msg
-            print(self.clients_temp_data)
-            # if data in bytearray(OP_CONNECTION_BEGIN, "UTF-8"):
-            #     msg_c(a, "Start connection >>> ")
-            # elif data in bytearray(OP_DATA_BEGIN, "UTF-8"):
-            #     msg_c(a, "Receiving data ... start")
-            # elif data in bytearray(OP_DATA_END, "UTF-8"):
-            #     msg_c(a, "Receiving data ... end")
-            # elif data in bytearray(OP_CONNECTION_END, "UTF-8"):
-            #     msg_c(a, "Stop connection <<< ")
-            #     break
-            # else:
-            #     msg_c(a, "Nothing is received ... ")
 
     def loop(self):
         try:
@@ -91,7 +80,7 @@ class Server():
         except:
             import traceback
             traceback.print_exc()
-            print("Exception: during server's loop.")
+            print("[Exception] during server's loop.")
         finally:
             self.close_connections()
 

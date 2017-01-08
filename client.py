@@ -6,14 +6,12 @@ class Client():
     def __init__(self, address=("127.0.0.1",5000)):
         self.socket = socket.socket()
         self.socket.connect(address)
-        self.ops = [1,2,3,4]
 
-    def do_op(self):
-        # import random
-        # random.randint(self.ops)
+    def send_fake_data(self):
+        # Sample data to be sent !
         self.send(" " * 2)
         self.send(OP_DATA_BEGIN)
-        self.send(" " * 50)
+        self.send("ABCD" * 8196)
         self.send(OP_DATA_END)
         self.send(" " * 3)
 
@@ -26,7 +24,8 @@ class Client():
                 if sent == 0:
                     raise RuntimeError("socket connection broken")
                 totalsent = totalsent + sent
-            print(" data has been sent successfully !")
+            print("%d bytes data has been sent successfully !"%(totalsent))
 
-tc=Client()
-tc.do_op()
+if __name__ == "__main__":
+    tc=Client()
+    tc.send_fake_data()
