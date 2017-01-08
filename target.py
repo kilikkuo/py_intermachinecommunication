@@ -1,24 +1,8 @@
-import abc
+import pickle
 import threading
 from multiprocessing import Process, Pipe
 from server import Server
-
-class OCLTaskResult:
-    def __init__(self, result):
-        self.result = result
-
-    def get_result(self):
-        return self.result
-
-class OCLTaskExecutor(object):
-    def __init__(self, package_bytes):
-        self.package_bytes = package_bytes
-
-    def execute(self):
-        import os
-        print("[C][%d][OCLTaskExecutor] executing >>>>> "%(os.getpid()))
-        task_result = OCLTaskResult("Hello")
-        return task_result
+from client import SimpleOCLTaskExecutor
 
 def execute_task(task, conn):
     assert conn != None
@@ -60,21 +44,27 @@ class OCLExecutionTarget:
 
     def __recv_from_executor(self, ocl_result):
         print("[P] result : %s "%(str(ocl_result)))
-        # TODO : Send this OCLTaskResult back to Host.
+        pickled_result = pickle.dumps(ocl_result)
+        # TODO : Send this pickled OCLTaskResult back to Host.
         pass
 
     def __task_package_callback(self, package_bytes):
-        # TODO : Need to wrap package_bytes into OCLTask
-        task = OCLTaskExecutor(package_bytes)
-
-        thread = threading.Thread(target=launch_process,
-                                  args=(self.__recv_from_executor,
-                                        task,
-                                        self.parent_conn,
-                                        self.child_conn))
-        thread.daemon = True
-        thread.start()
-        thread.join()
+        thread = None
+        try:
+            task = pickle.loads(package_bytes)
+            thread = threading.Thread(target=launch_process,
+                                      args=(self.__recv_from_executor,
+                                            task,
+                                            self.parent_conn,
+                                            self.child_conn))
+            thread.daemon = True
+            thread.start()
+        except:
+            import traceback
+            traceback.print_exc()
+        finally:
+            if thread:
+                thread.join()
 
 if __name__ == "__main__":
     target = OCLExecutionTarget()

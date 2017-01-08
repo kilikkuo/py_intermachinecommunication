@@ -56,22 +56,21 @@ class Server():
         self.shutdown()
 
     def __extract_task_from_data(self):
-        for a, msg in list(self.clients_temp_data.items()):
-            db_idx = msg.find(OP_DATA_BEGIN)
-            de_idx = msg.find(OP_DATA_END)
+        for a, data in list(self.clients_temp_data.items()):
+            db_idx = data.find(bytearray(OP_DATA_BEGIN, "ASCII"))
+            de_idx = data.find(bytearray(OP_DATA_END, "ASCII"))
             if db_idx >= 0 and de_idx >= 0:
-                task_msg = msg[db_idx:de_idx+5]
-                msg_c(a, task_msg)
-                self.callback_for_package(bytearray(task_msg, "UTF-8"))
-                self.clients_temp_data[a] = ""
+                task = data[db_idx+7:de_idx]
+                msg_c(a, str(task))
+                self.callback_for_package(task)
+                self.clients_temp_data[a] = b""
         pass
 
     def __check_for_recv(self):
         for a, c in list(self.clients.items()):
             data = c.recv(2028)
-            msg = data.decode("UTF-8")
-            if msg:
-                self.clients_temp_data[a] = self.clients_temp_data.get(a, "") + msg
+            if data and len(data):
+                self.clients_temp_data[a] = self.clients_temp_data.get(a, b"") + data
 
     def __loop(self):
         try:

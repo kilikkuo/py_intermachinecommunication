@@ -1,6 +1,17 @@
 import time
 import socket
-from op_code import OP_DATA_BEGIN, OP_DATA_END
+import pickle
+from op_code import OP_DATA_BEGIN, OP_DATA_END, OCLTaskExecutor, OCLTaskResult
+
+class SimpleOCLTaskExecutor(OCLTaskExecutor):
+    def __init__(self, package_bytes):
+        OCLTaskExecutor.__init__(self, package_bytes)
+
+    def execute(self):
+        import os
+        print("[C][%d][SimpleOCLTaskExecutor] executing >>>>> "%(os.getpid()))
+        task_result = OCLTaskResult("Hello")
+        return task_result
 
 class Client():
     def __init__(self, address=("127.0.0.1",5000)):
@@ -11,12 +22,14 @@ class Client():
         # Sample data to be sent !
         self.send(" " * 2)
         self.send(OP_DATA_BEGIN)
-        self.send("ABCD" * 20)
+        executor = SimpleOCLTaskExecutor("executor ...")
+        data = pickle.dumps(executor)
+        self.send(data)
         self.send(OP_DATA_END)
         self.send(" " * 3)
 
     def send(self, msg):
-        data = bytearray(msg, "UTF-8") if msg != None else None
+        data = bytearray(msg, "ASCII") if msg != None and type(msg) == str else msg
         if data != None:
             totalsent = 0
             while totalsent < len(data):
