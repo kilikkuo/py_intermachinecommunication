@@ -11,7 +11,7 @@ class Client():
         # Sample data to be sent !
         self.send(" " * 2)
         self.send(OP_DATA_BEGIN)
-        self.send("ABCD" * 8196)
+        self.send("ABCD" * 20)
         self.send(OP_DATA_END)
         self.send(" " * 3)
 
@@ -28,4 +28,8 @@ class Client():
 
 if __name__ == "__main__":
     tc=Client()
+    # tc2=Client()
+    # tc3=Client()
     tc.send_fake_data()
+    # tc2.send_fake_data()
+    # tc3.send_fake_data()
