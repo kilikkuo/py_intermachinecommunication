@@ -1,57 +1,56 @@
 import sys
-import threading
 import pickle
-from op_code import OCLTaskWrapper
 from server import Server
 
 class OCLExecutionHost(object):
     def __init__(self):
         self.server = Server(address = ("", 10000))
         self.server.run_server(self.__recv_from_target)
-        self.clients = {}
         pass
 
     def shutdown(self):
-        print("[Host] shutting down ... ")
+        print("[Host] shutdown ... begin")
         self.server.shutdown()
-        print("[Host] shutting down ... end")
+        print("[Host] shutdown ... end")
 
-    def __recv_from_target(self, result):
-        print("OCLExecutionHost: %s "%(str(result)))
+    def __recv_from_target(self, serialized_wrapper):
+        result_wrapper = pickle.loads(serialized_wrapper)
+        print("[Host] get result : %s "%(result_wrapper.get_result()))
         pass
 
-    def send_task(self):
+    def send_execution_task(self, execute_wrapper):
         from client import Client
         c = Client()
-        from executor import SimpleOCLTaskExecutor, loads_and_execute
-        executor_bytes = pickle.dumps(SimpleOCLTaskExecutor("Hello ..."))
-        wrapper = OCLTaskWrapper(executor_bytes, loads_and_execute)
-        c.send_fake_data(wrapper)
+        c.send_fake_data(execute_wrapper)
 
 host = None
 def create_host():
-    print(" Create ... host")
+    print(" Create host ...")
     global host
     host = OCLExecutionHost()
 
 def shutdown_host():
-    print(" Shutdown ... host")
+    print(" Shutdown host ... ")
     global host
     host.shutdown()
 
-def send_task():
+def send_execution_task(wrapper):
     print(" Send task ...")
     global host
-    host.send_task()
+    host.send_execution_task(wrapper)
 
 if __name__ == "__main__":
     create_host()
     try:
+        print("Press s + <Enter> to send a task !")
         for line in sys.stdin:
-            print(line)
-            if line == "send_task\n":
-                send_task()
+            if line == "s\n":
+                from op_code import OCLExecutorWrapper
+                from executor import SimpleOCLTaskExecutor, bytes_executor_loader
+                executor_bytes = pickle.dumps(SimpleOCLTaskExecutor("Hello ..."))
+                wrapper = OCLExecutorWrapper(executor_bytes, bytes_executor_loader)
+                send_execution_task(wrapper)
     except:
-        print("exception line in ")
+        print("[Exception] when waiting for input !")
     finally:
         shutdown_host()

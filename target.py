@@ -64,26 +64,23 @@ class OCLExecutionTarget(object):
             self.shutdown()
         pass
 
-    def __recv_from_executor(self, ocl_result):
-        print("[P] result : %s "%(str(ocl_result)))
-        pickled_result = pickle.dumps(ocl_result)
+    def __recv_from_executor(self, result_wrapper):
+        print("[P] result : %s "%(str(result_wrapper)))
         from client import Client
         c = Client(address=("127.0.0.1", 10000))
-        # c.send_fake_data(pickled_result)
-        # TODO : Send this pickled OCLTaskResult back to Host.
-        pass
+        c.send_fake_data(result_wrapper)
 
-    def __task_package_callback(self, package_bytes):
+    def __task_package_callback(self, serialized_executor_wrapper):
         print("[Target] __task_package_callback .... >>>> ")
-        if len(package_bytes) == 0:
+        if len(serialized_executor_wrapper) == 0:
             print("No package bytes !! ")
             return
         self.thread = None
         try:
-            wrapper = pickle.loads(package_bytes)
+            executor_wrapper = pickle.loads(serialized_executor_wrapper)
             self.thread = threading.Thread(target=launch_process,
                                            args=(self.__recv_from_executor,
-                                                 wrapper,
+                                                 executor_wrapper,
                                                  self.parent_conn,
                                                  self.child_conn))
             self.thread.daemon = True
