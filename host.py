@@ -45,7 +45,7 @@ if __name__ == "__main__":
         print("Press s + <Enter> to send a task !")
         for line in sys.stdin:
             if line == "s\n":
-                from op_code import ExecutorWrapper
+                from definition import ExecutorWrapper
                 from executor import SimpleTaskExecutor, bytes_executor_loader
                 executor_bytes = pickle.dumps(SimpleTaskExecutor("Hello ..."))
                 wrapper = ExecutorWrapper(executor_bytes, bytes_executor_loader)

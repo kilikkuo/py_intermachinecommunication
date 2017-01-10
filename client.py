@@ -1,6 +1,6 @@
 import socket
 import pickle
-from op_code import OP_DATA_BEGIN, OP_DATA_END
+from definition import OP_DATA_BEGIN, OP_DATA_END
 
 class Client():
     def __init__(self, address=("127.0.0.1", 5000)):

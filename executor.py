@@ -1,6 +1,6 @@
 import os
 import pickle
-from op_code import TaskExecutor, TaskResult, ResultWrapper
+from definition import TaskExecutor, TaskResult, ResultWrapper
 
 def bytes_result_loader(bytes_result):
     result = pickle.loads(bytes_result)

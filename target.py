@@ -1,7 +1,5 @@
 import sys
 import pickle
-import time
-import threading
 from multiprocessing import Process, Pipe
 from server import Server
 
@@ -52,6 +50,7 @@ class ExecutionTarget(object):
     def run_until_exception(self):
         self.server.run_server(self.__task_package_callback)
         try:
+            import time
             while 1:
                 time.sleep(1)
         except:
@@ -76,6 +75,7 @@ class ExecutionTarget(object):
         self.thread = None
         try:
             executor_wrapper = pickle.loads(serialized_executor_wrapper)
+            import threading
             self.thread = threading.Thread(target=launch_process,
                                            args=(self.__recv_from_executor,
                                                  executor_wrapper,

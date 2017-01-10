@@ -3,7 +3,7 @@ import time
 import select
 import socket
 import threading
-from op_code import OP_DATA_BEGIN, OP_DATA_END
+from definition import OP_DATA_BEGIN, OP_DATA_END
 
 def msg_c(a, msg):
     print("[%s] "%(str(a)) + msg)
@@ -68,7 +68,7 @@ class Server():
 
     def run_server(self, package_callback):
         assert callable(package_callback)
-        print("run_server ...")
+        print(" Run server ...")
         self.callback_for_package = package_callback
 
         if self.thread == None:
