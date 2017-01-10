@@ -2,10 +2,10 @@ import socket
 import pickle
 from definition import OP_DATA_BEGIN, OP_DATA_END
 
-class Client():
-    def __init__(self, address=("127.0.0.1", 5000)):
+class Client(object):
+    def __init__(self, ip = "127.0.0.1", port = 5000):
         self.socket = socket.socket()
-        self.socket.connect(address)
+        self.socket.connect((ip, port))
 
     def send_fake_data(self, wrapper = None):
         # Sample data to be sent !
@@ -31,7 +31,5 @@ class Client():
 if __name__ == "__main__":
     tc = Client()
     tc2 = Client()
-    # tc3 = Client()
     tc.send_fake_data()
     tc2.send_fake_data("THIS IS A TEST !!!")
-    # tc3.send_fake_data()

@@ -8,10 +8,10 @@ from definition import OP_DATA_BEGIN, OP_DATA_END
 def msg_c(a, msg):
     print("[%s] "%(str(a)) + msg)
 
-class Server():
-    def __init__(self, address = ("",5000), max_client = 1):
+class Server(object):
+    def __init__(self, ip = "", port = 5000, max_client = 1):
         self.socket = socket.socket()
-        self.socket.bind(address)
+        self.socket.bind((ip, port))
         self.socket.listen(max_client)
         self.clients = {}
         self.thread = None

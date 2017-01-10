@@ -3,6 +3,12 @@ from abc import ABCMeta, abstractmethod
 OP_DATA_BEGIN       = "DTBegin"
 OP_DATA_END         = "DTEnd"
 
+HOST_IP     = "127.0.0.1"
+HOST_PORT   = 7788
+TARGET_IP   = ["127.0.0.1"]
+TARGET_PORT = 5566
+
+
 class TaskResult:
     # Should sub-class this class as your own specific Result
     # See SimpleTaskResult in executor.py

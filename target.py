@@ -2,6 +2,9 @@ import sys
 import pickle
 from multiprocessing import Process, Pipe
 from server import Server
+from definition import HOST_IP, HOST_PORT, TARGET_PORT
+
+print(" >>>>>>>>>>>> target.py ")
 
 def execute_task(wrapper, conn):
     print(" >>>>> Going to execute task !!")
@@ -35,7 +38,7 @@ def launch_process(cb_to_target, wrapper, parent_conn, child_conn):
 class ExecutionTarget(object):
     def __init__(self):
         # max_client should always be 1 (TaskHost)
-        self.server = Server(max_client = 1)
+        self.server = Server(port = TARGET_PORT, max_client = 1)
         self.parent_conn, self.child_conn = Pipe()
         self.thread = None
         pass
@@ -64,7 +67,7 @@ class ExecutionTarget(object):
     def __recv_from_executor(self, result_wrapper):
         print("[P] result : %s "%(str(result_wrapper)))
         from client import Client
-        c = Client(address=("127.0.0.1", 10000))
+        c = Client(ip = HOST_IP, port = HOST_PORT)
         c.send_fake_data(result_wrapper)
 
     def __task_package_callback(self, serialized_executor_wrapper):
@@ -94,5 +97,6 @@ class ExecutionTarget(object):
                 self.thread = None
 
 if __name__ == "__main__":
+    print(" Create target ...")
     target = ExecutionTarget()
     target.run_until_exception()
