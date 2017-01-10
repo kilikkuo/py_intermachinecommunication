@@ -1,4 +1,5 @@
 from abc import ABCMeta, abstractmethod
+import pickle
 
 OP_CONNECTION_BEGIN = "CNXBegin"
 OP_DATA_BEGIN       = "DTBegin"
@@ -14,9 +15,14 @@ class OCLTaskResult:
 
 class OCLTaskExecutor(object):
     __metaclass__ = ABCMeta
-    def __init__(self, package_bytes):
-        self.package_bytes = package_bytes
-
     @abstractmethod
     def execute(self):
         raise NotImplemented("Not implemented !")
+
+class OCLTaskWrapper(object):
+    def __init__(self, bytes_executor, loads_and_execute):
+        self.bytes_executor = bytes_executor
+        self.loads_and_execute = loads_and_execute
+
+    def execute(self):
+        return self.loads_and_execute(self.bytes_executor)

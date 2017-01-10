@@ -1,4 +1,6 @@
+import sys
 import time
+import select
 import socket
 import threading
 from op_code import OP_DATA_BEGIN, OP_DATA_END
@@ -30,30 +32,49 @@ class Server():
             traceback.print_exc()
 
     def shutdown(self):
-        print("Shutting down ...")
+        print("[Server] Shutting down ...")
         self.__close_connections()
         if self.thread:
             self.evt_break.set()
             self.thread.join()
+        print("[Server] Shutting down ... end")
+
+    def __loop_for_connections(self):
+        read_list = [self.socket]
+        try:
+            while 1:
+                if self.evt_break.is_set():
+                    break
+                readable, writable, errored = select.select(read_list, [], [], 0)
+                for s in readable:
+                    if s is self.socket:
+                        client, addr = self.socket.accept()
+                        self.clients[addr] = client
+                        read_list.append(client)
+                        print("[%s] Connected !"%(str(addr)))
+                    else:
+                        client = None
+                        for a, c in list(self.clients.items()):
+                            if c is s:
+                                self.__check_for_recv((a, c))
+                        self.__extract_task_from_data()
+                time.sleep(1)
+        except:
+            import traceback
+            traceback.print_exc()
+            print("[Exception] during server's loop for connections.")
+        finally:
+            self.__close_connections()
 
     def run_server(self, package_callback):
         assert callable(package_callback)
         print("run_server ...")
         self.callback_for_package = package_callback
-        while 1:
-            try:
-                client, addr = (self.socket.accept())
-                print("[%s] Connected !"%(str(addr)))
-                self.clients[addr] = client
-                if self.thread == None:
-                    self.thread = threading.Thread(target=self.__loop)
-                    self.thread.daemon = True
-                    self.thread.start()
-                time.sleep(1)
-            except:
-                print("[Exception] waiting for connection >>> break")
-                break
-        self.shutdown()
+
+        if self.thread == None:
+            self.thread = threading.Thread(target=self.__loop_for_connections)
+            self.thread.daemon = True
+            self.thread.start()
 
     def __extract_task_from_data(self):
         for a, data in list(self.clients_temp_data.items()):
@@ -66,29 +87,22 @@ class Server():
                 self.clients_temp_data[a] = b""
         pass
 
-    def __check_for_recv(self):
-        for a, c in list(self.clients.items()):
-            data = c.recv(2028)
-            if data and len(data):
-                self.clients_temp_data[a] = self.clients_temp_data.get(a, b"") + data
-
-    def __loop(self):
-        try:
-            while 1:
-                if self.evt_break.is_set():
-                    break
-                self.__check_for_recv()
-                self.__extract_task_from_data()
-                time.sleep(1)
-        except:
-            import traceback
-            traceback.print_exc()
-            print("[Exception] during server's loop.")
-        finally:
-            self.__close_connections()
+    def __check_for_recv(self, ac_pair):
+        a, c = ac_pair
+        data = c.recv(2028)
+        if data and len(data):
+            self.clients_temp_data[a] = self.clients_temp_data.get(a, b"") + data
 
 if __name__ == "__main__":
     def package_callbak(package):
         print(package)
     srv = Server()
     srv.run_server(package_callbak)
+    try:
+        for line in sys.stdin:
+            print(line)
+    except:
+        import traceback
+        traceback.print_exc()
+        print("[Exception] while lining in ")
+    srv.shutdown()

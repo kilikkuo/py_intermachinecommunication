@@ -1,30 +1,19 @@
-import time
 import socket
 import pickle
-from op_code import OP_DATA_BEGIN, OP_DATA_END, OCLTaskExecutor, OCLTaskResult
-
-class SimpleOCLTaskExecutor(OCLTaskExecutor):
-    def __init__(self, package_bytes):
-        OCLTaskExecutor.__init__(self, package_bytes)
-
-    def execute(self):
-        import os
-        print("[C][%d][SimpleOCLTaskExecutor] executing >>>>> "%(os.getpid()))
-        task_result = OCLTaskResult("Hello")
-        return task_result
+from op_code import OP_DATA_BEGIN, OP_DATA_END
 
 class Client():
-    def __init__(self, address=("127.0.0.1",5000)):
+    def __init__(self, address=("127.0.0.1", 5000)):
         self.socket = socket.socket()
         self.socket.connect(address)
 
-    def send_fake_data(self):
+    def send_fake_data(self, wrapper = None):
         # Sample data to be sent !
         self.send(" " * 2)
         self.send(OP_DATA_BEGIN)
-        executor = SimpleOCLTaskExecutor("executor ...")
-        data = pickle.dumps(executor)
-        self.send(data)
+        if wrapper:
+            data = pickle.dumps(wrapper)
+            self.send(data)
         self.send(OP_DATA_END)
         self.send(" " * 3)
 
@@ -40,9 +29,9 @@ class Client():
             print("%d bytes data has been sent successfully !"%(totalsent))
 
 if __name__ == "__main__":
-    tc=Client()
-    # tc2=Client()
-    # tc3=Client()
+    tc = Client()
+    tc2 = Client()
+    # tc3 = Client()
     tc.send_fake_data()
-    # tc2.send_fake_data()
+    tc2.send_fake_data("THIS IS A TEST !!!")
     # tc3.send_fake_data()
