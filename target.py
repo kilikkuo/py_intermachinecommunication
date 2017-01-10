@@ -69,6 +69,7 @@ class ExecutionTarget(object):
         from client import Client
         c = Client(ip = HOST_IP, port = HOST_PORT)
         c.send_fake_data(result_wrapper)
+        c.shutdown()
 
     def __task_package_callback(self, serialized_executor_wrapper):
         print("[Target] __task_package_callback .... >>>> ")

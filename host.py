@@ -24,6 +24,7 @@ class ExecutionHost(object):
         # TODO : Select one of Target to send task
         c = Client(port = TARGET_PORT)
         c.send_fake_data(execute_wrapper)
+        c.shutdown()
 
 host = None
 def create_host():

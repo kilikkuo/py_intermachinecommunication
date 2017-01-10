@@ -27,6 +27,9 @@ class Server(object):
                 a, c = self.clients.popitem()
                 print("Closing connection [%s] ..."%(str(a)))
                 c.close()
+            if self.socket:
+                self.socket.shutdown(socket.SHUT_RDWR)
+                self.socket.close()
         except:
             import traceback
             traceback.print_exc()

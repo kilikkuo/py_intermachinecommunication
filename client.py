@@ -7,6 +7,12 @@ class Client(object):
         self.socket = socket.socket()
         self.socket.connect((ip, port))
 
+    def shutdown(self):
+        if self.socket:
+            print(" Client goes down ... ")
+            self.socket.shutdown(socket.SHUT_RDWR)
+            self.socket.close()
+
     def send_fake_data(self, wrapper = None):
         # Sample data to be sent !
         self.send(" " * 2)
@@ -33,3 +39,5 @@ if __name__ == "__main__":
     tc2 = Client()
     tc.send_fake_data()
     tc2.send_fake_data("THIS IS A TEST !!!")
+    tc.shutdown()
+    tc2.shutdown()
