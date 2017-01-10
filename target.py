@@ -5,7 +5,6 @@ import threading
 from multiprocessing import Process, Pipe
 from server import Server
 
-print(" target ...... in ")
 def execute_task(wrapper, conn):
     print(" >>>>> Going to execute task !!")
     assert conn != None
@@ -35,13 +34,12 @@ def launch_process(cb_to_target, wrapper, parent_conn, child_conn):
     finally:
         cb_to_target(result)
 
-class OCLExecutionTarget(object):
+class ExecutionTarget(object):
     def __init__(self):
-        # max_client should always be 1 (OCLTaskHost)
+        # max_client should always be 1 (TaskHost)
         self.server = Server(max_client = 1)
         self.parent_conn, self.child_conn = Pipe()
         self.thread = None
-        self.__available = True
         pass
 
     def shutdown(self):
@@ -96,6 +94,5 @@ class OCLExecutionTarget(object):
                 self.thread = None
 
 if __name__ == "__main__":
-    print(" main ......... ")
-    target = OCLExecutionTarget()
+    target = ExecutionTarget()
     target.run_until_exception()

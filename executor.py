@@ -1,6 +1,6 @@
 import os
 import pickle
-from op_code import OCLTaskExecutor, OCLTaskResult, OCLResultWrapper
+from op_code import TaskExecutor, TaskResult, ResultWrapper
 
 def bytes_result_loader(bytes_result):
     result = pickle.loads(bytes_result)
@@ -10,24 +10,24 @@ def bytes_executor_loader(bytes_executor):
     executor = pickle.loads(bytes_executor)
     return executor.execute()
 
-class SimpleOCLTaskResult(OCLTaskResult):
+class SimpleTaskResult(TaskResult):
     def __init__(self, package):
-        OCLTaskResult.__init__(self)
+        TaskResult.__init__(self)
         self.package = package
 
     def get_result(self):
         # Do whatever to the package to make it start working !
-        print("[C][%d][SimpleOCLTaskResult] get_result >>>>> "%(os.getpid()))
+        print("[C][%d][SimpleTaskResult] get_result >>>>> "%(os.getpid()))
         return self.package
 
-class SimpleOCLTaskExecutor(OCLTaskExecutor):
+class SimpleTaskExecutor(TaskExecutor):
     def __init__(self, package):
-        OCLTaskExecutor.__init__(self)
+        TaskExecutor.__init__(self)
         self.package = package
 
     def execute(self):
         # Do whatever to the package to make it start working !
-        print("[C][%d][SimpleOCLTaskExecutor] executing >>>>> "%(os.getpid()))
-        bytes_result = pickle.dumps(SimpleOCLTaskResult("AABBCC Result!"))
-        wrapper = OCLResultWrapper(bytes_result, bytes_result_loader)
+        print("[C][%d][SimpleTaskExecutor] executing >>>>> "%(os.getpid()))
+        bytes_result = pickle.dumps(SimpleTaskResult("AABBCC Result!"))
+        wrapper = ResultWrapper(bytes_result, bytes_result_loader)
         return wrapper

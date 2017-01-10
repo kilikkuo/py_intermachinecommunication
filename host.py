@@ -2,7 +2,7 @@ import sys
 import pickle
 from server import Server
 
-class OCLExecutionHost(object):
+class ExecutionHost(object):
     def __init__(self):
         self.server = Server(address = ("", 10000))
         self.server.run_server(self.__recv_from_target)
@@ -27,7 +27,7 @@ host = None
 def create_host():
     print(" Create host ...")
     global host
-    host = OCLExecutionHost()
+    host = ExecutionHost()
 
 def shutdown_host():
     print(" Shutdown host ... ")
@@ -45,10 +45,10 @@ if __name__ == "__main__":
         print("Press s + <Enter> to send a task !")
         for line in sys.stdin:
             if line == "s\n":
-                from op_code import OCLExecutorWrapper
-                from executor import SimpleOCLTaskExecutor, bytes_executor_loader
-                executor_bytes = pickle.dumps(SimpleOCLTaskExecutor("Hello ..."))
-                wrapper = OCLExecutorWrapper(executor_bytes, bytes_executor_loader)
+                from op_code import ExecutorWrapper
+                from executor import SimpleTaskExecutor, bytes_executor_loader
+                executor_bytes = pickle.dumps(SimpleTaskExecutor("Hello ..."))
+                wrapper = ExecutorWrapper(executor_bytes, bytes_executor_loader)
                 send_execution_task(wrapper)
     except:
         print("[Exception] when waiting for input !")
