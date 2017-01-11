@@ -24,11 +24,10 @@ class Server(object):
     def __close_connections(self):
         try:
             while len(self.clients) > 0:
-                a, c = self.clients.popitem()
+                c, a = self.clients.popitem()
                 print("Closing connection [%s] ..."%(str(a)))
                 c.close()
             if self.socket:
-                self.socket.shutdown(socket.SHUT_RDWR)
                 self.socket.close()
         except:
             import traceback
@@ -49,18 +48,24 @@ class Server(object):
                 if self.evt_break.is_set():
                     break
                 readable, writable, errored = select.select(read_list, [], [], 0)
+
                 for s in readable:
                     if s is self.socket:
                         client, addr = self.socket.accept()
-                        self.clients[addr] = client
+                        self.clients[client] = addr
                         read_list.append(client)
                         print("[%s] Connected !"%(str(addr)))
                     else:
                         client = None
-                        for a, c in list(self.clients.items()):
+                        for c, a in list(self.clients.items()):
                             if c is s:
-                                self.__check_for_recv((a, c))
-                        self.__extract_task_from_data()
+                                self.__check_for_recv(c, a)
+                            if self.__extract_task_from_data(c, a):
+                                self.clients.pop(c)
+                                read_list.remove(c)
+                                c.close()
+                                print(" REMOVED & CLOSE a socket client !!!!!!! ")
+
                 time.sleep(1)
         except:
             import traceback
@@ -79,22 +84,22 @@ class Server(object):
             self.thread.daemon = True
             self.thread.start()
 
-    def __extract_task_from_data(self):
-        for a, data in list(self.clients_temp_data.items()):
-            db_idx = data.find(bytearray(OP_DATA_BEGIN, "ASCII"))
-            de_idx = data.find(bytearray(OP_DATA_END, "ASCII"))
-            if db_idx >= 0 and de_idx >= 0:
-                task = data[db_idx+7:de_idx]
-                msg_c(a, str(task))
-                self.callback_for_package(task)
-                self.clients_temp_data[a] = b""
-        pass
+    def __extract_task_from_data(self, c, a):
+        data = self.clients_temp_data.get((c, a), b"")
+        db_idx = data.find(bytearray(OP_DATA_BEGIN, "ASCII"))
+        de_idx = data.find(bytearray(OP_DATA_END, "ASCII"))
+        if db_idx >= 0 and de_idx >= 0:
+            task = data[db_idx+7:de_idx]
+            msg_c(a, str(task))
+            self.callback_for_package(task)
+            self.clients_temp_data.pop((c, a))
+            return True
+        return False
 
-    def __check_for_recv(self, ac_pair):
-        a, c = ac_pair
-        data = c.recv(2028)
+    def __check_for_recv(self, c, a):
+        data = c.recv(2048)
         if data and len(data):
-            self.clients_temp_data[a] = self.clients_temp_data.get(a, b"") + data
+            self.clients_temp_data[(c,a)] = self.clients_temp_data.get((c,a), b"") + data
 
 if __name__ == "__main__":
     def package_callbak(package):

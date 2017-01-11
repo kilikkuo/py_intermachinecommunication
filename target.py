@@ -4,8 +4,6 @@ from multiprocessing import Process, Pipe
 from server import Server
 from definition import HOST_IP, HOST_PORT, TARGET_PORT
 
-print(" >>>>>>>>>>>> target.py ")
-
 def execute_task(wrapper, conn):
     print(" >>>>> Going to execute task !!")
     assert conn != None
@@ -65,11 +63,19 @@ class ExecutionTarget(object):
         pass
 
     def __recv_from_executor(self, result_wrapper):
-        print("[P] result : %s "%(str(result_wrapper)))
+        print("[Target][P] result : %s "%(str(result_wrapper)))
         from client import Client
-        c = Client(ip = HOST_IP, port = HOST_PORT)
-        c.send_fake_data(result_wrapper)
-        c.shutdown()
+        c = None
+        try:
+            c = Client(ip = HOST_IP, port = HOST_PORT)
+            c.send_fake_data(result_wrapper)
+        except:
+            import traceback
+            traceback.print_exc()
+            print("[Target][P][Exception] while receiving result from executor !")
+        finally:
+            if c:
+                c.shutdown()
 
     def __task_package_callback(self, serialized_executor_wrapper):
         print("[Target] __task_package_callback .... >>>> ")
@@ -79,6 +85,9 @@ class ExecutionTarget(object):
         self.thread = None
         try:
             executor_wrapper = pickle.loads(serialized_executor_wrapper)
+            # TODO : Sometimes the process won't work while using another thread.
+            # launch_process(self.__recv_from_executor, executor_wrapper,
+            #                self.parent_conn, self.child_conn)
             import threading
             self.thread = threading.Thread(target=launch_process,
                                            args=(self.__recv_from_executor,
@@ -91,6 +100,7 @@ class ExecutionTarget(object):
             import traceback
             traceback.print_exc()
         finally:
+            pass
             if self.thread:
                 print("[Target] self.thread.join() begin ")
                 self.thread.join()

@@ -8,7 +8,6 @@ HOST_PORT   = 7788
 TARGET_IP   = ["127.0.0.1"]
 TARGET_PORT = 5566
 
-
 class TaskResult:
     # Should sub-class this class as your own specific Result
     # See SimpleTaskResult in executor.py

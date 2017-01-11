@@ -22,9 +22,17 @@ class ExecutionHost(object):
     def send_execution_task(self, execute_wrapper):
         from client import Client
         # TODO : Select one of Target to send task
-        c = Client(port = TARGET_PORT)
-        c.send_fake_data(execute_wrapper)
-        c.shutdown()
+        c = None
+        try:
+            c = Client(port = TARGET_PORT)
+            c.send_fake_data(execute_wrapper)
+        except:
+            import traceback
+            traceback.print_exc()
+            print("[Host][Exception] while sending execution task !")
+        finally:
+            if c:
+                c.shutdown()
 
 host = None
 def create_host():
@@ -54,8 +62,8 @@ if __name__ == "__main__":
             if line == "s\n":
                 send_execution_task()
     except:
-        print("[Exception] when waiting for input !")
         import traceback
         traceback.print_exc()
+        print("[Exception] when waiting for input !")
     finally:
         shutdown_host()
