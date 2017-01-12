@@ -13,13 +13,11 @@ class Client(object):
             self.socket.shutdown(socket.SHUT_RDWR)
             self.socket.close()
 
-    def send_fake_data(self, wrapper = None):
+    def send_data(self, wrapper = None):
         # Sample data to be sent !
         self.send(" " * 2)
         self.send(OP_DATA_BEGIN)
-        if wrapper:
-            data = pickle.dumps(wrapper)
-            self.send(data)
+        self.send(wrapper)
         self.send(OP_DATA_END)
         self.send(" " * 3)
 
@@ -37,7 +35,7 @@ class Client(object):
 if __name__ == "__main__":
     tc = Client()
     tc2 = Client()
-    tc.send_fake_data()
-    tc2.send_fake_data("THIS IS A TEST !!!")
+    tc.send_data()
+    tc2.send_data("THIS IS A TEST !!!")
     tc.shutdown()
     tc2.shutdown()

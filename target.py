@@ -4,10 +4,11 @@ from multiprocessing import Process, Pipe
 from server import Server
 from definition import HOST_IP, HOST_PORT, TARGET_PORT
 
-def execute_task(wrapper, conn):
+def execute_task(serialized_wrapper, conn):
     print(" >>>>> Going to execute task !!")
     assert conn != None
     try:
+        wrapper = pickle.loads(serialized_wrapper)
         result = wrapper.execute()
         conn.send(result)
     except:
@@ -62,13 +63,13 @@ class ExecutionTarget(object):
             self.shutdown()
         pass
 
-    def __recv_from_executor(self, result_wrapper):
-        print("[Target][P] result : %s "%(str(result_wrapper)))
+    def __recv_from_executor(self, serialized_result_wrapper):
+        print("[Target][P] result : %s "%(str(serialized_result_wrapper)))
         from client import Client
         c = None
         try:
             c = Client(ip = HOST_IP, port = HOST_PORT)
-            c.send_fake_data(result_wrapper)
+            c.send_data(serialized_result_wrapper)
         except:
             import traceback
             traceback.print_exc()
@@ -84,14 +85,10 @@ class ExecutionTarget(object):
             return
         self.thread = None
         try:
-            executor_wrapper = pickle.loads(serialized_executor_wrapper)
-            # TODO : Sometimes the process won't work while using another thread.
-            # launch_process(self.__recv_from_executor, executor_wrapper,
-            #                self.parent_conn, self.child_conn)
             import threading
             self.thread = threading.Thread(target=launch_process,
                                            args=(self.__recv_from_executor,
-                                                 executor_wrapper,
+                                                 serialized_executor_wrapper,
                                                  self.parent_conn,
                                                  self.child_conn))
             self.thread.daemon = True

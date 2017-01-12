@@ -8,40 +8,25 @@ HOST_PORT   = 7788
 TARGET_IP   = ["127.0.0.1"]
 TARGET_PORT = 5566
 
-class TaskResult:
-    # Should sub-class this class as your own specific Result
-    # See SimpleTaskResult in executor.py
-    __metaclass__ = ABCMeta
-    @abstractmethod
-    def get_result(self):
-        raise NotImplemented("Not implemented !")
+HOST_PIPE_NAME = "hostpipenotpope"
 
 class ResultWrapper:
-    def __init__(self, bytes_result, bytes_result_loader):
+    def __init__(self, bytes_result):
         # A bytesArray which represents the serialized result.
         self.bytes_result = bytes_result
-        # The loader to help you recover the serialized result and
-        # get actual result back !
-        self.bytes_result_loader = bytes_result_loader
 
     def get_result(self):
-        return self.bytes_result_loader(self.bytes_result)
-
-class TaskExecutor(object):
-    # Should sub-class this class as your own specific Execution
-    # See SimpleTaskExecutor in executor.py
-    __metaclass__ = ABCMeta
-    @abstractmethod
-    def execute(self):
-        raise NotImplemented("Not implemented !")
+        return self.bytes_result
 
 class ExecutorWrapper(object):
-    def __init__(self, bytes_executor, bytes_executor_loader):
-        # A bytesArray which represents the serialized executor.
-        self.bytes_executor = bytes_executor
-        # The loader to help you recover the serialized executor and
+    def __init__(self, bytes_program, bytes_program_loader):
+        # A bytesArray which represents the serialized program.
+        self.bytes_program = bytes_program
+        # The loader to help you load the serialized program and
         # execute it !
-        self.bytes_executor_loader = bytes_executor_loader
+        self.bytes_program_loader = bytes_program_loader
 
     def execute(self):
-        return self.bytes_executor_loader(self.bytes_executor)
+        exec(self.bytes_program_loader)
+        data = locals()['bytes_program_loader'](self.bytes_program)
+        return data

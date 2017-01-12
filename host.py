@@ -1,7 +1,9 @@
+import os
 import sys
+import time
 import pickle
 from server import Server
-from definition import HOST_PORT, HOST_IP, TARGET_PORT
+from definition import HOST_PORT, HOST_IP, TARGET_PORT, HOST_PIPE_NAME
 
 class ExecutionHost(object):
     def __init__(self):
@@ -14,8 +16,9 @@ class ExecutionHost(object):
         self.server.shutdown()
         print("[Host] shutdown ... end")
 
-    def __recv_from_target(self, serialized_wrapper):
-        result_wrapper = pickle.loads(serialized_wrapper)
+    def __recv_from_target(self, serialized_result_wrapper):
+        # TODO : Need to pass serialized_wrapper back to project_sender
+        result_wrapper = pickle.loads(serialized_result_wrapper)
         print("[Host] get result : %s "%(result_wrapper.get_result()))
         pass
 
@@ -25,7 +28,7 @@ class ExecutionHost(object):
         c = None
         try:
             c = Client(port = TARGET_PORT)
-            c.send_fake_data(execute_wrapper)
+            c.send_data(execute_wrapper)
         except:
             import traceback
             traceback.print_exc()
@@ -40,27 +43,26 @@ def create_host():
     global host
     host = ExecutionHost()
 
+    if not os.path.exists(HOST_PIPE_NAME):
+        os.mkfifo(HOST_PIPE_NAME)
+
+    totalline = b''
+    while True:
+        pipein = open(HOST_PIPE_NAME, 'rb')
+        print("Press s + <Enter> to send a task !")
+        line = pipein.read()
+        if len(line) != 0:
+            host.send_execution_task(line)
+        time.sleep(1)
+
 def shutdown_host():
     print(" Shutdown host ... ")
     global host
     host.shutdown()
 
-def send_execution_task():
-    print(" Send task ...")
-    global host
-    from definition import ExecutorWrapper
-    from executor import SimpleTaskExecutor, bytes_executor_loader
-    executor_bytes = pickle.dumps(SimpleTaskExecutor("Hello ..."))
-    wrapper = ExecutorWrapper(executor_bytes, bytes_executor_loader)
-    host.send_execution_task(wrapper)
-
 if __name__ == "__main__":
-    create_host()
     try:
-        print("Press s + <Enter> to send a task !")
-        for line in sys.stdin:
-            if line == "s\n":
-                send_execution_task()
+        create_host()
     except:
         import traceback
         traceback.print_exc()
