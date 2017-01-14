@@ -8,7 +8,8 @@ HOST_PORT   = 7788
 TARGET_IP   = ["127.0.0.1"]
 TARGET_PORT = 5566
 
-HOST_PIPE_NAME = "hostpipenotpope"
+HOST_PIPEIN_NAME = "hostpipein"
+HOST_PIPEOUT_NAME = "hostpipeout"
 
 class ResultWrapper:
     def __init__(self, bytes_result):

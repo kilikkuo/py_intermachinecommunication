@@ -39,13 +39,9 @@ class ExecutionTarget(object):
         # max_client should always be 1 (TaskHost)
         self.server = Server(port = TARGET_PORT, max_client = 1)
         self.parent_conn, self.child_conn = Pipe()
-        self.thread = None
         pass
 
     def shutdown(self):
-        if self.thread:
-            self.thread.join()
-            self.thread = None
         if self.server:
             self.server.shutdown()
 
@@ -83,26 +79,26 @@ class ExecutionTarget(object):
         if len(serialized_executor_wrapper) == 0:
             print("No package bytes !! ")
             return
-        self.thread = None
+        thread = None
         try:
             import threading
-            self.thread = threading.Thread(target=launch_process,
-                                           args=(self.__recv_from_executor,
-                                                 serialized_executor_wrapper,
-                                                 self.parent_conn,
-                                                 self.child_conn))
-            self.thread.daemon = True
-            self.thread.start()
+            thread = threading.Thread(target=launch_process,
+                                      args=(self.__recv_from_executor,
+                                            serialized_executor_wrapper,
+                                            self.parent_conn,
+                                            self.child_conn))
+            thread.daemon = True
+            thread.start()
         except:
             import traceback
             traceback.print_exc()
         finally:
             pass
-            if self.thread:
-                print("[Target] self.thread.join() begin ")
-                self.thread.join()
-                print("[Target] self.thread.join() end ")
-                self.thread = None
+            if thread:
+                print("[Target][Thread for Process] join begin ")
+                thread.join()
+                print("[Target][Thread for Process] join end ")
+                thread = None
 
 if __name__ == "__main__":
     print(" Create target ...")

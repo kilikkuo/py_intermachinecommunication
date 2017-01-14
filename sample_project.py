@@ -1,7 +1,9 @@
+import threading
 import os
 import sys
 import pickle
-from definition import ResultWrapper, ExecutorWrapper, HOST_PIPE_NAME
+from definition import ResultWrapper, ExecutorWrapper, HOST_PIPEIN_NAME,\
+                        HOST_PIPEOUT_NAME
 
 def get_serialized_execution_wrapper():
     ba = None
@@ -13,15 +15,35 @@ def get_serialized_execution_wrapper():
     return serialized_executor_wrapper
 
 def project_sender():
-    if not os.path.exists(HOST_PIPE_NAME):
-        os.mkfifo(HOST_PIPE_NAME)
+    print("[Sender] Press s + <Enter> to send a task !")
+    if not os.path.exists(HOST_PIPEIN_NAME):
+        os.mkfifo(HOST_PIPEIN_NAME)
 
-    for line in sys.stdin:
-        if "s" in line:
-            pipeout = os.open(HOST_PIPE_NAME, os.O_WRONLY)
-            bmsg = get_serialized_execution_wrapper()
-            os.write(pipeout, bmsg)
-            os.close(pipeout)
+    try:
+        recv_thread = None
+        for line in sys.stdin:
+            if "s" in line and recv_thread == None:
+                pipeout = os.open(HOST_PIPEIN_NAME, os.O_WRONLY)
+                bmsg = get_serialized_execution_wrapper()
+                os.write(pipeout, bmsg)
+                os.close(pipeout)
+                recv_thread = threading.Thread(target=project_reciver)
+                recv_thread.daemont = True
+                recv_thread.start()
+                recv_thread.join()
+                recv_thread = None
+    except:
+        pass
+
+def project_reciver():
+    if not os.path.exists(HOST_PIPEOUT_NAME):
+        os.mkfifo(HOST_PIPEOUT_NAME)
+
+    pipein = open(HOST_PIPEOUT_NAME, 'rb')
+    line = pipein.read()
+    if len(line) != 0:
+        print("[Project_reciver] recv : %s"%(str(line)))
+    os.unlink(HOST_PIPEOUT_NAME)
 
 def create_zip():
     import zipfile
