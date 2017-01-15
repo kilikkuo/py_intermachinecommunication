@@ -1,8 +1,17 @@
+import os
 import sys
 import pickle
+import traceback
+import threading
 from multiprocessing import Process, Pipe
-from server import Server
-from definition import HOST_IP, HOST_PORT, TARGET_PORT
+
+PACKAGE_PARENT = '..'
+SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
+sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
+
+from simple_host_target.client import Client
+from simple_host_target.server import Server
+from simple_host_target.definition import HOST_IP, HOST_PORT, TARGET_PORT
 
 def execute_task(serialized_wrapper, conn):
     print(" >>>>> Going to execute task !!")
@@ -12,7 +21,6 @@ def execute_task(serialized_wrapper, conn):
         result = wrapper.execute()
         conn.send(result)
     except:
-        import traceback
         traceback.print_exc()
     finally:
         conn.close()
@@ -29,7 +37,6 @@ def launch_process(cb_to_target, wrapper, parent_conn, child_conn):
         p.join()
     except:
         result = None
-        import traceback
         traceback.print_exc()
     finally:
         cb_to_target(result)
@@ -48,12 +55,12 @@ class ExecutionTarget(object):
     def run_until_exception(self):
         self.server.run_server(self.__task_package_callback)
         try:
+            # CAUTION : Using sys.stdin will result in hang while spawning
+            #           process.
             import time
             while 1:
                 time.sleep(1)
         except:
-            import traceback
-            traceback.print_exc()
             print("[Target][Exception] while lining in ")
         finally:
             self.shutdown()
@@ -61,13 +68,11 @@ class ExecutionTarget(object):
 
     def __recv_from_executor(self, serialized_result_wrapper):
         print("[Target][P] result : %s "%(str(serialized_result_wrapper)))
-        from client import Client
         c = None
         try:
             c = Client(ip = HOST_IP, port = HOST_PORT)
             c.send_data(serialized_result_wrapper)
         except:
-            import traceback
             traceback.print_exc()
             print("[Target][P][Exception] while receiving result from executor !")
         finally:
@@ -81,7 +86,6 @@ class ExecutionTarget(object):
             return
         thread = None
         try:
-            import threading
             thread = threading.Thread(target=launch_process,
                                       args=(self.__recv_from_executor,
                                             serialized_executor_wrapper,
@@ -90,7 +94,6 @@ class ExecutionTarget(object):
             thread.daemon = True
             thread.start()
         except:
-            import traceback
             traceback.print_exc()
         finally:
             pass
@@ -100,7 +103,11 @@ class ExecutionTarget(object):
                 print("[Target][Thread for Process] join end ")
                 thread = None
 
-if __name__ == "__main__":
+# Exported function
+def launch_target():
     print(" Create target ...")
     target = ExecutionTarget()
     target.run_until_exception()
+
+if __name__ == "__main__":
+    launch_target()

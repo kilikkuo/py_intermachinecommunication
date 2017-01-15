@@ -1,9 +1,16 @@
+import os
 import sys
 import time
 import select
 import socket
+import traceback
 import threading
-from definition import OP_DATA_BEGIN, OP_DATA_END
+
+PACKAGE_PARENT = '..'
+SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
+sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
+
+from simple_host_target.definition import OP_DATA_BEGIN, OP_DATA_END
 
 def msg_c(a, msg):
     print("[%s] "%(str(a)) + msg)
@@ -14,7 +21,8 @@ class Server(object):
         self.socket.bind((ip, port))
         self.socket.listen(max_client)
         self.clients = {}
-        self.thread = None
+        self.thread = threading.Thread(target=self.__loop_for_connections)
+        self.thread.daemon = True
         self.evt_break = threading.Event()
         self.evt_break.clear()
 
@@ -30,7 +38,6 @@ class Server(object):
             if self.socket:
                 self.socket.close()
         except:
-            import traceback
             traceback.print_exc()
 
     def shutdown(self):
@@ -39,6 +46,7 @@ class Server(object):
         if self.thread:
             self.evt_break.set()
             self.thread.join()
+            self.thread = None
         print("[Server] Shutting down ... end")
 
     def __loop_for_connections(self):
@@ -68,7 +76,6 @@ class Server(object):
 
                 time.sleep(1)
         except:
-            import traceback
             traceback.print_exc()
             print("[Exception] during server's loop for connections.")
         finally:
@@ -76,12 +83,11 @@ class Server(object):
 
     def run_server(self, package_callback):
         assert callable(package_callback)
+        assert (self.thread != None)
         print(" Run server ...")
         self.callback_for_package = package_callback
 
-        if self.thread == None:
-            self.thread = threading.Thread(target=self.__loop_for_connections)
-            self.thread.daemon = True
+        if self.thread and not self.thread.is_alive():
             self.thread.start()
 
     def __extract_task_from_data(self, c, a):
@@ -110,7 +116,6 @@ if __name__ == "__main__":
         for line in sys.stdin:
             print(line)
     except:
-        import traceback
         traceback.print_exc()
         print("[Exception] while lining in ")
     srv.shutdown()

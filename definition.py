@@ -1,5 +1,3 @@
-from abc import ABCMeta, abstractmethod
-
 OP_DATA_BEGIN       = "DTBegin"
 OP_DATA_END         = "DTEnd"
 
@@ -8,9 +6,11 @@ HOST_PORT   = 7788
 TARGET_IP   = ["127.0.0.1"]
 TARGET_PORT = 5566
 
+# Exported definitions
 HOST_PIPEIN_NAME = "hostpipein"
 HOST_PIPEOUT_NAME = "hostpipeout"
 
+# Exported definitions
 class ResultWrapper:
     def __init__(self, bytes_result):
         # A bytesArray which represents the serialized result.
@@ -19,6 +19,7 @@ class ResultWrapper:
     def get_result(self):
         return self.bytes_result
 
+# Exported definitions
 class ExecutorWrapper(object):
     def __init__(self, bytes_program, bytes_program_loader):
         # A bytesArray which represents the serialized program.

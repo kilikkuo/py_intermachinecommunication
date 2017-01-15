@@ -1,8 +1,15 @@
-import threading
+
 import os
 import sys
 import pickle
-from definition import ResultWrapper, ExecutorWrapper, HOST_PIPEIN_NAME,\
+import zipfile
+import threading
+
+PACKAGE_PARENT = '..'
+SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
+sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
+
+from simple_host_target.definition import ResultWrapper, ExecutorWrapper, HOST_PIPEIN_NAME,\
                         HOST_PIPEOUT_NAME
 
 def get_serialized_execution_wrapper():
@@ -22,6 +29,7 @@ def project_sender():
     try:
         recv_thread = None
         for line in sys.stdin:
+            print(line)
             if "s" in line and recv_thread == None:
                 pipeout = os.open(HOST_PIPEIN_NAME, os.O_WRONLY)
                 bmsg = get_serialized_execution_wrapper()
@@ -46,7 +54,6 @@ def project_reciver():
     os.unlink(HOST_PIPEOUT_NAME)
 
 def create_zip():
-    import zipfile
     with zipfile.ZipFile('program.zip', 'w') as myzip:
         myzip.writestr('program.py', "print('I ==>> PROGRAM')")
     ba = None
@@ -83,13 +90,18 @@ def bytes_program_loader(ba):
     serialized_result_wrapper = pickle.dumps(result_wrapper)
     return serialized_result_wrapper
 """
+def extract_and_run_zip(ba):
+    exec(loader_scripts)
+    print(ba)
+    locals()['bytes_program_loader'](ba)
 
-ba = create_zip()
-project_sender()
+# Exported function
+def test_sample_project():
+    ba = create_zip()
+    project_sender()
+    # To test if the zipped program can be executed correctly
+    # extract_and_run_zip(ba)
+    pass
 
-# def extract_and_run_zip(ba):
-#     exec(loader_scripts)
-#     print(ba)
-#     locals()['bytes_program_loader'](ba)
-# To test if the zipped program can be executed correctly
-# extract_and_run_zip(ba)
+if __name__ == "__main__":
+    test_sample_project()
