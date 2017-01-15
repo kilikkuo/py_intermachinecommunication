@@ -68,6 +68,10 @@ def shutdown_host():
     print(" Shutdown host ... ")
     global host
     host.shutdown()
+    if os.path.exists(HOST_PIPEIN_NAME):
+        os.unlink(HOST_PIPEIN_NAME)
+    if os.path.exists(HOST_PIPEOUT_NAME):
+        os.unlink(HOST_PIPEOUT_NAME)
 
 if __name__ == "__main__":
     try:

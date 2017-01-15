@@ -84,12 +84,12 @@ def bytes_program_loader(ba):
     return serialized_result_wrapper
 """
 
-def extract_and_run_zip(ba):
-    exec(loader_scripts)
-    print(ba)
-    locals()['bytes_program_loader'](ba)
-
 ba = create_zip()
 project_sender()
-#
+
+# def extract_and_run_zip(ba):
+#     exec(loader_scripts)
+#     print(ba)
+#     locals()['bytes_program_loader'](ba)
+# To test if the zipped program can be executed correctly
 # extract_and_run_zip(ba)
