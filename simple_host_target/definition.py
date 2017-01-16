@@ -10,6 +10,14 @@ TARGET_PORT = 5566
 HOST_PIPEIN_NAME = "hostpipein"
 HOST_PIPEOUT_NAME = "hostpipeout"
 
+def get_local_IP():
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 1))
+    ip = s.getsockname()[0]
+    s.close()
+    return ip
+
 # Exported definitions
 class ResultWrapper:
     def __init__(self, bytes_result):

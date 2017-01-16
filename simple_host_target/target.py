@@ -11,7 +11,7 @@ sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 
 from simple_host_target.client import Client
 from simple_host_target.server import Server
-from simple_host_target.definition import HOST_IP, HOST_PORT, TARGET_PORT
+from simple_host_target.definition import HOST_PORT, TARGET_PORT, get_local_IP
 
 def execute_task(serialized_wrapper, conn):
     print(" >>>>> Going to execute task !!")
@@ -42,9 +42,12 @@ def launch_process(cb_to_target, wrapper, parent_conn, child_conn):
         cb_to_target(result)
 
 class ExecutionTarget(object):
-    def __init__(self):
+    def __init__(self, host_ip, localhost = None):
         # max_client should always be 1 (TaskHost)
-        self.server = Server(port = TARGET_PORT, max_client = 1)
+        localhost = localhost if localhost else get_local_IP()
+        self.host_ip = host_ip
+        print(" Create target ... @(%s), host@(%s) "%(localhost, host_ip))
+        self.server = Server(ip = localhost, port = TARGET_PORT, max_client = 1)
         self.parent_conn, self.child_conn = Pipe()
         pass
 
@@ -70,7 +73,7 @@ class ExecutionTarget(object):
         print("[Target][P] result : %s "%(str(serialized_result_wrapper)))
         c = None
         try:
-            c = Client(ip = HOST_IP, port = HOST_PORT)
+            c = Client(ip = self.host_ip, port = HOST_PORT)
             c.send_data(serialized_result_wrapper)
         except:
             traceback.print_exc()
@@ -104,10 +107,15 @@ class ExecutionTarget(object):
                 thread = None
 
 # Exported function
-def launch_target():
-    print(" Create target ...")
-    target = ExecutionTarget()
+def launch_target(host_ip):
+    h_ip = host_ip.strip()
+    target = ExecutionTarget(h_ip)
     target.run_until_exception()
 
 if __name__ == "__main__":
-    launch_target()
+    print("Please enter HOST IP : ")
+    host_ip = None
+    for line in sys.stdin:
+        host_ip = line
+        break
+    launch_target(host_ip)

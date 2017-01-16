@@ -9,12 +9,14 @@ sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 from simple_host_target.client import Client
 from simple_host_target.server import Server
 from simple_host_target.definition import HOST_PORT, HOST_IP, TARGET_PORT, HOST_PIPEIN_NAME,\
-                        HOST_PIPEOUT_NAME
+                        HOST_PIPEOUT_NAME, get_local_IP
 
 class ExecutionHost(object):
-    def __init__(self):
-        self.server = Server(ip = HOST_IP, port = HOST_PORT)
+    def __init__(self, host_ip = HOST_IP, target_IPs = []):
+        self.server = Server(ip = host_ip, port = HOST_PORT)
         self.server.run_server(self.__recv_from_target)
+        self.target_IPs = set(target_IPs)
+        self.used_target_IPs = set()
         pass
 
     def shutdown(self):
@@ -29,9 +31,13 @@ class ExecutionHost(object):
 
     def send_execution_task(self, execute_wrapper):
         # TODO : Select one of Target to send task
+        t_ip = self.target_IPs.pop() if len(self.target_IPs) else None
+        if t_ip == None:
+            print("No available target for new job. Try later !!")
+            return
         c = None
         try:
-            c = Client(port = TARGET_PORT)
+            c = Client(ip = t_ip, port = TARGET_PORT)
             c.send_data(execute_wrapper)
         except:
             traceback.print_exc()
@@ -49,11 +55,11 @@ def send_result(serialized_result_wrapper):
     os.close(pipeout)
 
 host = None
-def create_host():
-    print(" Create host ...")
+def create_host(h_IP, t_IPs):
     global host
     assert (host == None)
-    host = ExecutionHost()
+    print(" Create host ... @(%s)"%(h_IP))
+    host = ExecutionHost(h_IP, t_IPs)
 
     if not os.path.exists(HOST_PIPEIN_NAME):
         os.mkfifo(HOST_PIPEIN_NAME)
@@ -81,9 +87,10 @@ def shutdown_host():
     host = None
 
 # Exported function
-def launch_host():
+def launch_host(IP = None, target_IPs = []):
     try:
-        create_host()
+        host_IP = IP if IP else get_local_IP()
+        create_host(host_IP, target_IPs)
     except:
         traceback.print_exc()
         print("[Exception] when waiting for input !")
@@ -91,4 +98,4 @@ def launch_host():
         shutdown_host()
 
 if __name__ == "__main__":
-    launch_host()
+    launch_host(get_local_IP(), [get_local_IP()])

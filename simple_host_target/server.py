@@ -17,6 +17,7 @@ def msg_c(a, msg):
 
 class Server(object):
     def __init__(self, ip = "", port = 5000, max_client = 1):
+        assert (ip != "")
         self.socket = socket.socket()
         self.socket.bind((ip, port))
         self.socket.listen(max_client)
