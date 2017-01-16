@@ -85,7 +85,7 @@ class Server(object):
     def run_server(self, package_callback):
         assert callable(package_callback)
         assert (self.thread != None)
-        print(" Run server ...")
+        print("Start the server ...")
         self.callback_for_package = package_callback
 
         if self.thread and not self.thread.is_alive():
