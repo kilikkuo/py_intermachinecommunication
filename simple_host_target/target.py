@@ -65,7 +65,7 @@ class ExecutionTarget(object):
                 sys.exit(1)
         return IP
 
-    def run_until_exception(self, host_IP):
+    def run(self, host_IP = ""):
         self.host_IP = self.__ensure_host_IP(host_IP)
         # TODO: max_client should always be 1 (TaskHost)
         self.server = Server(ip = self.target_IP, port = TARGET_PORT, max_client = 1)
@@ -139,4 +139,4 @@ def create_target():
 if __name__ == "__main__":
     target = create_target()
     if target:
-        target.run_until_exception("")
+        target.run()
