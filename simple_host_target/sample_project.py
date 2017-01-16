@@ -67,15 +67,15 @@ def bytes_program_loader(ba):
     import zipfile
 
     # Convert bytes array data into zip file
-    with open("../program.zip", "wb") as fn:
+    with open("./program.zip", "wb") as fn:
         fn.write(ba)
 
     # Extract files to execute
-    with zipfile.ZipFile('../program.zip') as myzip:
-        myzip.extractall('../')
+    with zipfile.ZipFile('./program.zip') as myzip:
+        myzip.extractall('./')
 
     # Execution
-    with open("../program.py") as f:
+    with open("./program.py") as f:
         code = compile(f.read(), "program.py", 'exec')
         exec(code)
 
