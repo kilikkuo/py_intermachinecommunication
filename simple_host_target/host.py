@@ -21,8 +21,22 @@ class ExecutionHost(object):
         assert(type(target_IPs) == set and len(target_IPs) > 0), "Must be a Set and size > 0."
         self.target_IPs = target_IPs
 
+    def __ensure_target_IPs(self):
+        if len(self.target_IPs) == 0:
+            print("Empty target IPs, you should call setup_target_IPs before run !!")
+            print("Or enter at least a valid Target IP ...")
+            try:
+                target_IP = ""
+                for line in sys.stdin:
+                    target_IP = line.strip()
+                    break
+                self.target_IPs.add(target_IP)
+            except:
+                print("Something wrong while processing target IP, exit !")
+                sys.exit(1)
+
     def run(self):
-        assert len(self.target_IPs) != 0, "Please setup target IP first !"
+        self.__ensure_target_IPs()
         self.server = Server(ip = self.host_IP, port = HOST_PORT)
         self.server.run_server(self.__recv_from_target)
 
@@ -102,5 +116,4 @@ def create_host():
 if __name__ == "__main__":
     host = create_host()
     if host:
-        host.setup_target_IPs(set(["10.0.2.115"]))
         host.run()

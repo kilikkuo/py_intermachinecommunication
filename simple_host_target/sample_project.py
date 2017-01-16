@@ -29,8 +29,8 @@ def project_sender():
     try:
         recv_thread = None
         for line in sys.stdin:
-            print(line)
             if "s" in line and recv_thread == None:
+                print("Got s, going to send ... ")
                 pipeout = os.open(HOST_PIPEIN_NAME, os.O_WRONLY)
                 bmsg = get_serialized_execution_wrapper()
                 os.write(pipeout, bmsg)
