@@ -18,8 +18,8 @@ class ExecutionHost(object):
         self.used_target_IPs = set()
 
     def setup_target_IPs(self, target_IPs):
-        assert(type(target_IPs) == set and len(target_IPs) > 0), "Must be a Set and size > 0."
-        self.target_IPs = target_IPs
+        assert(type(target_IPs) == list and len(target_IPs) > 0), "Must be a list and size > 0."
+        self.target_IPs = set(target_IPs)
 
     def __ensure_target_IPs(self):
         if len(self.target_IPs) == 0:
