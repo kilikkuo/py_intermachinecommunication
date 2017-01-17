@@ -1,9 +1,7 @@
 OP_DATA_BEGIN       = "DTBegin"
 OP_DATA_END         = "DTEnd"
 
-HOST_IP     = "127.0.0.1"
 HOST_PORT   = 7788
-TARGET_IP   = ["127.0.0.1"]
 TARGET_PORT = 5566
 
 # Exported definitions
