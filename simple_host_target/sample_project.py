@@ -9,49 +9,22 @@ PACKAGE_PARENT = '..'
 SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
 sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 
-from simple_host_target.definition import ResultWrapper, ExecutorWrapper, HOST_PIPEIN_NAME,\
-                        HOST_PIPEOUT_NAME
-
-def get_serialized_execution_wrapper():
-    ba = None
-    with open("program.zip", "rb") as fn:
-        ba = fn.read()
-
-    wrapper = ExecutorWrapper(ba, loader_scripts)
-    serialized_executor_wrapper = pickle.dumps(wrapper)
-    return serialized_executor_wrapper
+from simple_host_target.definition import HOST_PIPEIN_NAME,\
+                        HOST_PIPEOUT_NAME, send_task_to_host, sht_proxy_shutdown
 
 def project_sender():
     print("[Sender] Press s + <Enter> to send a task !")
-    if not os.path.exists(HOST_PIPEIN_NAME):
-        os.mkfifo(HOST_PIPEIN_NAME)
-
     try:
-        recv_thread = None
         for line in sys.stdin:
-            if "s" in line and recv_thread == None:
+            if "s" in line:
                 print("Got s, going to send ... ")
-                pipeout = os.open(HOST_PIPEIN_NAME, os.O_WRONLY)
-                bmsg = get_serialized_execution_wrapper()
-                os.write(pipeout, bmsg)
-                os.close(pipeout)
-                recv_thread = threading.Thread(target=project_reciver)
-                recv_thread.daemont = True
-                recv_thread.start()
-                recv_thread.join()
-                recv_thread = None
+                ba = create_zip()
+                send_task_to_host(ba, loader_scripts, project_reciver)
     except:
         pass
 
-def project_reciver():
-    if not os.path.exists(HOST_PIPEOUT_NAME):
-        os.mkfifo(HOST_PIPEOUT_NAME)
-
-    pipein = open(HOST_PIPEOUT_NAME, 'rb')
-    line = pipein.read()
-    if len(line) != 0:
-        print("[Project_reciver] recv : %s"%(str(line)))
-    os.unlink(HOST_PIPEOUT_NAME)
+def project_reciver(serialized_result):
+    print("[Project_reciver] recv : %s"%(str(serialized_result)))
 
 def create_zip():
     with zipfile.ZipFile('program.zip', 'w') as myzip:
@@ -83,12 +56,10 @@ def bytes_program_loader(ba):
     with zipfile.ZipFile('result.zip', 'w') as myzip:
         myzip.writestr('result.info', "IAMRESULT")
 
-    ba_result = None
+    result_bitstream = None
     with open("result.zip", "rb") as fn:
-        ba_result = fn.read()
-    result_wrapper = ResultWrapper(ba_result)
-    serialized_result_wrapper = pickle.dumps(result_wrapper)
-    return serialized_result_wrapper
+        result_bitstream = fn.read()
+    return result_bitstream
 """
 def extract_and_run_zip(ba):
     exec(loader_scripts)
@@ -97,9 +68,10 @@ def extract_and_run_zip(ba):
 
 # Exported function
 def test_sample_project():
-    ba = create_zip()
     project_sender()
+    sht_proxy_shutdown()
     # To test if the zipped program can be executed correctly
+    # ba = create_zip()
     # extract_and_run_zip(ba)
     pass
 

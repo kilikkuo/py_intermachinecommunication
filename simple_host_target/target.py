@@ -11,15 +11,17 @@ sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 
 from simple_host_target.client import Client
 from simple_host_target.server import Server
-from simple_host_target.definition import HOST_PORT, TARGET_PORT, get_local_IP
+from simple_host_target.definition import HOST_PORT, TARGET_PORT, get_local_IP, ResultWrapper
 
 def execute_task(serialized_wrapper, conn):
     print(" >>>>> Going to execute task !!")
     assert conn != None
     try:
         wrapper = pickle.loads(serialized_wrapper)
-        result = wrapper.execute()
-        conn.send(result)
+        result_bitstream = wrapper.execute()
+        result_wrapper = ResultWrapper(wrapper.token, result_bitstream)
+        serialized_result_wrapper = pickle.dumps(result_wrapper)
+        conn.send(serialized_result_wrapper)
     except:
         traceback.print_exc()
     finally:
@@ -69,7 +71,7 @@ class ExecutionTarget(object):
         self.host_IP = self.__ensure_host_IP(host_IP)
         # TODO: max_client should always be 1 (TaskHost)
         self.server = Server(ip = self.target_IP, port = TARGET_PORT, max_client = 1)
-        self.server.run_server(self.__task_package_callback)
+        self.server.run_server(self.__recv_from_host)
         try:
             # CAUTION : Using sys.stdin will result in hang while spawning
             #           process.
@@ -96,8 +98,8 @@ class ExecutionTarget(object):
             if c:
                 c.shutdown()
 
-    def __task_package_callback(self, serialized_executor_wrapper):
-        print("[Target] __task_package_callback .... >>>> ")
+    def __recv_from_host(self, serialized_executor_wrapper):
+        print("[Target] __recv_from_host .... >>>> ")
         if len(serialized_executor_wrapper) == 0:
             print("No package bytes !! ")
             return

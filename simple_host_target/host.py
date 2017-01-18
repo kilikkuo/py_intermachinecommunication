@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import pickle
 import traceback
 
 PACKAGE_PARENT = '..'
@@ -15,7 +16,7 @@ class ExecutionHost(object):
     def __init__(self, IP):
         self.host_IP = IP
         self.target_IPs = set()
-        self.used_target_IPs = set()
+        self.dicTokenIP = {}
 
     def setup_target_IPs(self, target_IPs):
         assert(type(target_IPs) == list and len(target_IPs) > 0), "Must be a list and size > 0."
@@ -67,7 +68,7 @@ class ExecutionHost(object):
             os.unlink(HOST_PIPEOUT_NAME)
         print("[Host] shutdown ... end")
 
-    def __send_result(self, serialized_result_wrapper):
+    def __send_result_to_proxy(self, serialized_result_wrapper):
         if not os.path.exists(HOST_PIPEOUT_NAME):
             os.mkfifo(HOST_PIPEOUT_NAME)
 
@@ -77,10 +78,14 @@ class ExecutionHost(object):
 
     def __recv_from_target(self, serialized_result_wrapper):
         print("[Host] get result : %s "%(str(serialized_result_wrapper)))
-        self.__send_result(serialized_result_wrapper)
+        rw = pickle.loads(serialized_result_wrapper)
+        t_ip = self.dicTokenIP.pop(rw.token, None)
+        if t_ip:
+            self.target_IPs.add(t_ip)
+        self.__send_result_to_proxy(serialized_result_wrapper)
         pass
 
-    def send_execution_task(self, execute_wrapper):
+    def send_execution_task(self, serialized_executor_wrapper):
         # TODO : Select one of Target to send task
         t_ip = self.target_IPs.pop() if len(self.target_IPs) else None
         if t_ip == None:
@@ -88,8 +93,10 @@ class ExecutionHost(object):
             return
         c = None
         try:
+            ew = pickle.loads(serialized_executor_wrapper)
             c = Client(ip = t_ip, port = TARGET_PORT)
-            c.send_data(execute_wrapper)
+            c.send_data(serialized_executor_wrapper)
+            self.dicTokenIP[ew.token] = t_ip
         except:
             traceback.print_exc()
             print("[Host][Exception] while sending execution task !")
