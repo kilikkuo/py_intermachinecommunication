@@ -9,14 +9,16 @@ SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.
 sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 from simple_host_target.client import Client
 from simple_host_target.server import Server
-from simple_host_target.definition import HOST_PORT, TARGET_PORT, HOST_PIPEIN_NAME,\
-                        HOST_PIPEOUT_NAME, get_local_IP
+from simple_host_target.definition import HOST_PORT, TARGET_PORT,\
+                        get_local_IP, OP_SH_DATA_PREFIX,\
+                        OP_SH_DATA_POSTFIX, OP_SH_DATA_MIDFIX
 
 class ExecutionHost(object):
     def __init__(self, IP):
         self.host_IP = IP
         self.target_IPs = set()
         self.dicTokenIP = {}
+        self.dicToken2Pairs = {}
 
     def setup_target_IPs(self, target_IPs):
         assert(type(target_IPs) == list and len(target_IPs) > 0), "Must be a list and size > 0."
@@ -39,18 +41,17 @@ class ExecutionHost(object):
     def run(self):
         self.__ensure_target_IPs()
         self.server = Server(ip = self.host_IP, port = HOST_PORT)
-        self.server.run_server(self.__recv_from_target)
-
-        if not os.path.exists(HOST_PIPEIN_NAME):
-            os.mkfifo(HOST_PIPEIN_NAME)
+        self.server.run_server(self.__recv_from_target,
+                               callback_info = { 1 : { "pre"   : OP_SH_DATA_PREFIX,
+                                                       "post"  : OP_SH_DATA_POSTFIX,
+                                                       "mid"   : OP_SH_DATA_MIDFIX,
+                                                       "callback" : self.__recv_from_sender
+                                                     }
+                                               })
 
         print("Host is running ...")
         while 1:
             try:
-                pipein = open(HOST_PIPEIN_NAME, 'rb')
-                line = pipein.read()
-                if len(line) != 0:
-                    self.send_execution_task(line)
                 time.sleep(1)
             except:
                 traceback.print_exc()
@@ -62,30 +63,32 @@ class ExecutionHost(object):
         if self.server:
             self.server.shutdown()
             self.server = None
-        if os.path.exists(HOST_PIPEIN_NAME):
-            os.unlink(HOST_PIPEIN_NAME)
-        if os.path.exists(HOST_PIPEOUT_NAME):
-            os.unlink(HOST_PIPEOUT_NAME)
         print("[Host] shutdown ... end")
 
-    def __send_result_to_proxy(self, serialized_result_wrapper):
-        if not os.path.exists(HOST_PIPEOUT_NAME):
-            os.mkfifo(HOST_PIPEOUT_NAME)
+    def __send_result_to_proxy(self, sh_ip_pairs, serialized_result_wrapper):
+        print("result to proxy: %s"%(serialized_result_wrapper))
+        sender_ip = sh_ip_pairs.get("sender_ip", "")
+        sender_port = sh_ip_pairs.get("sender_port", 0)
 
-        pipeout = os.open(HOST_PIPEOUT_NAME, os.O_WRONLY)
-        os.write(pipeout, serialized_result_wrapper)
-        os.close(pipeout)
+        c = Client(ip = sender_ip, port = sender_port)
+        c.send_sh_data("", serialized_result_wrapper)
+        c.shutdown()
+
+    def __recv_from_sender(self, ip_port_pairs, serialized_executor_wrapper):
+        dict_IP_pairs = eval(ip_port_pairs.decode("ASCII"))
+        self.__send_execution_task(dict_IP_pairs, serialized_executor_wrapper)
 
     def __recv_from_target(self, serialized_result_wrapper):
         print("[Host] get result : %s "%(str(serialized_result_wrapper)))
         rw = pickle.loads(serialized_result_wrapper)
+        sh_ip_pairs = self.dicToken2Pairs.pop(rw.token, "")
         t_ip = self.dicTokenIP.pop(rw.token, None)
         if t_ip:
             self.target_IPs.add(t_ip)
-        self.__send_result_to_proxy(serialized_result_wrapper)
+        self.__send_result_to_proxy(sh_ip_pairs, serialized_result_wrapper)
         pass
 
-    def send_execution_task(self, serialized_executor_wrapper):
+    def __send_execution_task(self, ip_port_pairs, serialized_executor_wrapper):
         # TODO : Select one of Target to send task
         t_ip = self.target_IPs.pop() if len(self.target_IPs) else None
         if t_ip == None:
@@ -95,8 +98,9 @@ class ExecutionHost(object):
         try:
             ew = pickle.loads(serialized_executor_wrapper)
             c = Client(ip = t_ip, port = TARGET_PORT)
-            c.send_data(serialized_executor_wrapper)
+            c.send_ht_data(serialized_executor_wrapper)
             self.dicTokenIP[ew.token] = t_ip
+            self.dicToken2Pairs[ew.token] = ip_port_pairs
         except:
             traceback.print_exc()
             print("[Host][Exception] while sending execution task !")

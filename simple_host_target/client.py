@@ -5,7 +5,9 @@ import socket
 PACKAGE_PARENT = '..'
 SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
 sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
-from simple_host_target.definition import OP_DATA_BEGIN, OP_DATA_END
+from simple_host_target.definition import OP_HT_DATA_BEGIN, OP_HT_DATA_END,\
+                                          OP_SH_DATA_PREFIX, OP_SH_DATA_POSTFIX,\
+                                          OP_SH_DATA_MIDFIX
 
 class Client(object):
     def __init__(self, ip = "127.0.0.1", port = 5000):
@@ -19,13 +21,19 @@ class Client(object):
             self.socket.close()
             self.socket = None
 
-    def send_data(self, wrapper = None):
+    def send_sh_data(self, ip_port = "", serialized_task = ""):
         # Sample data to be sent !
-        self.send(" " * 2)
-        self.send(OP_DATA_BEGIN)
-        self.send(wrapper)
-        self.send(OP_DATA_END)
-        self.send(" " * 3)
+        self.send(OP_SH_DATA_PREFIX)
+        self.send(ip_port)
+        self.send(OP_SH_DATA_MIDFIX)
+        self.send(serialized_task)
+        self.send(OP_SH_DATA_POSTFIX)
+
+    def send_ht_data(self, serialized_wrapper = ""):
+        # Sample data to be sent !
+        self.send(OP_HT_DATA_BEGIN)
+        self.send(serialized_wrapper)
+        self.send(OP_HT_DATA_END)
 
     def send(self, msg):
         assert (self.socket != None)
@@ -42,7 +50,7 @@ class Client(object):
 if __name__ == "__main__":
     tc = Client()
     tc2 = Client()
-    tc.send_data()
-    tc2.send_data("THIS IS A TEST !!!")
+    tc.send_ht_data()
+    tc2.send_ht_data("THIS IS A TEST !!!")
     tc.shutdown()
     tc2.shutdown()

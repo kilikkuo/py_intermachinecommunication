@@ -12,6 +12,7 @@ sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 from simple_host_target.client import Client
 from simple_host_target.server import Server
 from simple_host_target.definition import HOST_PORT, TARGET_PORT, get_local_IP, ResultWrapper
+from simple_host_target.generaltaskthread import TaskThread, Task
 
 def execute_task(serialized_wrapper, conn):
     print(" >>>>> Going to execute task !!")
@@ -43,14 +44,50 @@ def launch_process(cb_to_target, wrapper, parent_conn, child_conn):
     finally:
         cb_to_target(result)
 
+class SpawnExecuteTask(Task):
+    def __init__(self, recv_from_executor, serialized_wrapper, p_conn, c_conn):
+        Task.__init__(self)
+        self.recv_cb = recv_from_executor
+        self.serialized_wrapper = serialized_wrapper
+        self.p_conn = p_conn
+        self.c_conn = c_conn
+        pass
+    def run(self):
+        launch_process(self.recv_cb, self.serialized_wrapper, self.p_conn, self.c_conn)
+        pass
+
+class SendResultToHost(Task):
+    def __init__(self, host_ip, host_port, serialized_result_wrapper):
+        Task.__init__(self)
+        self.ip = host_ip
+        self.port = host_port
+        self.serialized_result_wrapper = serialized_result_wrapper
+
+    def run(self):
+        c = None
+        try:
+            c = Client(ip = self.ip, port = self.port)
+            c.send_ht_data(self.serialized_result_wrapper)
+        except:
+            traceback.print_exc()
+            print("[Target][P][SendResultToHost][Exception] !")
+        finally:
+            if c:
+                c.shutdown()
+
 class ExecutionTarget(object):
     def __init__(self, target_IP):
         self.host_IP = ""
         self.target_IP = target_IP
         self.parent_conn, self.child_conn = Pipe()
+        self.thread = TaskThread(name="Execution_thread")
+        self.thread.daemon = True
+        self.thread.start()
         pass
 
     def __shutdown(self):
+        if self.thread:
+            self.thread.stop()
         if self.server:
             self.server.shutdown()
 
@@ -78,7 +115,7 @@ class ExecutionTarget(object):
             print("Target is running ...")
             import time
             while 1:
-                time.sleep(1)
+                time.sleep(0.1)
         except:
             print("[Target][Exception] while lining in ")
         finally:
@@ -87,40 +124,22 @@ class ExecutionTarget(object):
 
     def __recv_from_executor(self, serialized_result_wrapper):
         print("[Target][P] result : %s "%(str(serialized_result_wrapper)))
-        c = None
-        try:
-            c = Client(ip = self.host_IP, port = HOST_PORT)
-            c.send_data(serialized_result_wrapper)
-        except:
-            traceback.print_exc()
-            print("[Target][P][Exception] while receiving result from executor !")
-        finally:
-            if c:
-                c.shutdown()
+        task = SendResultToHost(self.host_IP, HOST_PORT, serialized_result_wrapper)
+        self.thread.addtask(task)
 
     def __recv_from_host(self, serialized_executor_wrapper):
         print("[Target] __recv_from_host .... >>>> ")
         if len(serialized_executor_wrapper) == 0:
             print("No package bytes !! ")
             return
-        thread = None
         try:
-            thread = threading.Thread(target=launch_process,
-                                      args=(self.__recv_from_executor,
-                                            serialized_executor_wrapper,
-                                            self.parent_conn,
-                                            self.child_conn))
-            thread.daemon = True
-            thread.start()
+            task = SpawnExecuteTask(self.__recv_from_executor,
+                                    serialized_executor_wrapper,
+                                    self.parent_conn,
+                                    self.child_conn)
+            self.thread.addtask(task)
         except:
             traceback.print_exc()
-        finally:
-            pass
-            if thread:
-                print("[Target][Thread for Process] join begin ")
-                thread.join()
-                print("[Target][Thread for Process] join end ")
-                thread = None
 
 # Exported function
 def create_target():

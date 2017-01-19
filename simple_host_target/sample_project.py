@@ -9,18 +9,31 @@ PACKAGE_PARENT = '..'
 SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
 sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 
-from simple_host_target.definition import HOST_PIPEIN_NAME,\
-                        HOST_PIPEOUT_NAME, send_task_to_host, sht_proxy_shutdown
+from simple_host_target.definition import send_task_to_host, sht_proxy_shutdown
 
 def project_sender():
-    print("[Sender] Press s + <Enter> to send a task !")
     try:
+        print("[Sender] Enter Host & Sender's information pair ... ")
+        print("[Sender] e.g. HOST.IP.1.2, 7788, Sender.IP.1.2, 9487 ")
+        line = "192.168.0.14, 7788, 192.168.0.14, 9487"
+        raw = ""
+        # for line in sys.stdin:
+        raw = line.strip().split(',')
+        raw = [r.strip() for r in raw]
+            # break
+        assert len(raw) == 4
+        ip_port_pairs = { "host_ip"     : raw[0],
+                          "host_port"   : int(raw[1]),
+                          "sender_ip"   : raw[2],
+                          "sender_port" : int(raw[3])}
+        print("[Sender] Press s + <Enter> to send a task !")
         for line in sys.stdin:
             if "s" in line:
                 print("Got s, going to send ... ")
                 ba = create_zip()
-                send_task_to_host(ba, loader_scripts, project_reciver)
+                send_task_to_host(ip_port_pairs, ba, loader_scripts, project_reciver)
     except:
+        sht_proxy_shutdown()
         pass
 
 def project_reciver(serialized_result):

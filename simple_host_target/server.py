@@ -10,7 +10,7 @@ PACKAGE_PARENT = '..'
 SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
 sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 
-from simple_host_target.definition import OP_DATA_BEGIN, OP_DATA_END
+from simple_host_target.definition import OP_HT_DATA_BEGIN, OP_HT_DATA_END
 
 def msg_c(a, msg):
     print("[%s] "%(str(a)) + msg)
@@ -29,6 +29,7 @@ class Server(object):
 
         self.callback_for_package = None
         self.clients_temp_data = {}
+        self.callback_info = {}
 
     def __close_connections(self):
         try:
@@ -69,7 +70,8 @@ class Server(object):
                         for c, a in list(self.clients.items()):
                             if c is s:
                                 self.__check_for_recv(c, a)
-                            if self.__extract_task_from_data(c, a):
+                            if self.__extract_task_from_data(c, a) or\
+                               self.__extract_specific_task(c, a):
                                 self.clients.pop(c)
                                 read_list.remove(c)
                                 c.close()
@@ -82,21 +84,38 @@ class Server(object):
         finally:
             self.__close_connections()
 
-    def run_server(self, package_callback):
+    def run_server(self, package_callback, callback_info = {}):
         assert callable(package_callback)
         assert (self.thread != None)
         print("Start the server ...")
         self.callback_for_package = package_callback
+        self.callback_info = callback_info
 
         if self.thread and not self.thread.is_alive():
             self.thread.start()
 
+    def __extract_specific_task(self, c, a):
+        data = self.clients_temp_data.get((c, a), b"")
+        for info in self.callback_info.values():
+            pre_idx = data.find(info["pre"])
+            mid_idx = data.find(info["mid"])
+            post_idx = data.find(info["post"])
+            if pre_idx >= 0 and post_idx >= 0 and mid_idx >= 0:
+                ipport = data[pre_idx+len(info["pre"]):mid_idx]
+                msg_c(a, str(ipport))
+                task = data[mid_idx+len(info["mid"]):post_idx]
+                # msg_c(a, str(task))
+                info["callback"](ipport, task)
+                self.clients_temp_data.pop((c, a))
+                return True
+        return False
+
     def __extract_task_from_data(self, c, a):
         data = self.clients_temp_data.get((c, a), b"")
-        db_idx = data.find(bytearray(OP_DATA_BEGIN, "ASCII"))
-        de_idx = data.find(bytearray(OP_DATA_END, "ASCII"))
+        db_idx = data.find(OP_HT_DATA_BEGIN)
+        de_idx = data.find(OP_HT_DATA_END)
         if db_idx >= 0 and de_idx >= 0:
-            task = data[db_idx+7:de_idx]
+            task = data[db_idx+len(OP_HT_DATA_BEGIN):de_idx]
             msg_c(a, str(task))
             self.callback_for_package(task)
             self.clients_temp_data.pop((c, a))
