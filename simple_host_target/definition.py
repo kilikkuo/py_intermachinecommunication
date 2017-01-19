@@ -68,10 +68,8 @@ def recv_result_from_host(ip_port_pairs, token, callback):
         def data_cb(package):
             pass
         def sh_cb(ip_pairs, package):
-            print("SH_CALLBACK = %s"%(str(package)))
             callback(package)
             pass
-
         server.run_server(data_cb, callback_info = { 1 : { "pre" : OP_SH_DATA_PREFIX,
                                                            "post": OP_SH_DATA_POSTFIX,
                                                            "mid" : OP_SH_DATA_MIDFIX,

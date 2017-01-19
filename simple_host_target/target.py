@@ -28,15 +28,16 @@ def execute_task(serialized_wrapper, conn):
     finally:
         conn.close()
 
-def launch_process(cb_to_target, wrapper, parent_conn, child_conn):
+def launch_process(cb_to_target, wrapper):
     assert callable(cb_to_target)
     # Launch a python process to execute task.
     result = None
     try:
-        p = Process(target=execute_task, args=(wrapper, child_conn,))
+        p_conn, c_conn = Pipe()
+        p = Process(target=execute_task, args=(wrapper, c_conn,))
         p.start()
         print(" >>>>> Process launched !!")
-        result = parent_conn.recv()
+        result = p_conn.recv()
         p.join()
     except:
         result = None
@@ -45,15 +46,13 @@ def launch_process(cb_to_target, wrapper, parent_conn, child_conn):
         cb_to_target(result)
 
 class SpawnExecuteTask(Task):
-    def __init__(self, recv_from_executor, serialized_wrapper, p_conn, c_conn):
+    def __init__(self, recv_from_executor, serialized_wrapper):
         Task.__init__(self)
         self.recv_cb = recv_from_executor
         self.serialized_wrapper = serialized_wrapper
-        self.p_conn = p_conn
-        self.c_conn = c_conn
         pass
     def run(self):
-        launch_process(self.recv_cb, self.serialized_wrapper, self.p_conn, self.c_conn)
+        launch_process(self.recv_cb, self.serialized_wrapper)
         pass
 
 class SendResultToHost(Task):
@@ -79,7 +78,6 @@ class ExecutionTarget(object):
     def __init__(self, target_IP):
         self.host_IP = ""
         self.target_IP = target_IP
-        self.parent_conn, self.child_conn = Pipe()
         self.thread = TaskThread(name="Execution_thread")
         self.thread.daemon = True
         self.thread.start()
@@ -134,9 +132,7 @@ class ExecutionTarget(object):
             return
         try:
             task = SpawnExecuteTask(self.__recv_from_executor,
-                                    serialized_executor_wrapper,
-                                    self.parent_conn,
-                                    self.child_conn)
+                                    serialized_executor_wrapper)
             self.thread.addtask(task)
         except:
             traceback.print_exc()
