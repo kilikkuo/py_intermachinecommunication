@@ -15,12 +15,12 @@ def project_sender():
     try:
         print("[Sender] Enter Host & Sender's information pair ... ")
         print("[Sender] e.g. HOST.IP.1.2, 7788, Sender.IP.1.2, 9487 ")
-        line = "192.168.0.14, 7788, 192.168.0.14, 9487"
+        # line = "192.168.0.14, 7788, 192.168.0.14, 9487"
         raw = ""
-        # for line in sys.stdin:
-        raw = line.strip().split(',')
-        raw = [r.strip() for r in raw]
-            # break
+        for line in sys.stdin:
+            raw = line.strip().split(',')
+            raw = [r.strip() for r in raw]
+            break
         assert len(raw) == 4
         ip_port_pairs = { "host_ip"     : raw[0],
                           "host_port"   : int(raw[1]),

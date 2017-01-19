@@ -15,7 +15,7 @@ A package which host and target server could be easily setup (I assume ...) in s
         $> host.run()
     ```
 
-   * Terminal 2 (After target has set up, and be sure to run the python env in the same place as Terminal 1)
+   * Terminal 2 (After target has set up)
     ```shellscript
         $> import simple_host_target as sht
         $> sht.test_sample_project()
