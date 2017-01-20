@@ -9,15 +9,21 @@ PACKAGE_PARENT = '..'
 SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
 sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 
-from simple_host_target.definition import send_task_to_host, sht_proxy_shutdown
+from simple_host_target.definition import send_task_to_host,\
+                                          sht_proxy_shutdown,\
+                                          get_local_IP
 
 def project_sender():
     try:
         print("[Sender] Enter Host & Sender's information pair ... ")
-        print("[Sender] e.g. HOST.IP.1.2, 7788, Sender.IP.1.2, 9487 ")
-        # line = "192.168.0.14, 7788, 192.168.0.14, 9487"
+        print("[Sender] e.g. HOST.IP.1.2, HOST_PORT, SENDER.IP.1.2, SENDER_PORT")
+        print("[Sender] i.e. %s, 7788, %s, 9487 "%(get_local_IP(), get_local_IP()))
+        print("[Sender] Reuse above information, please enter yes")
+        print("[Sender] New information ?, enter your own ... ")
         raw = ""
         for line in sys.stdin:
+            if "yes" in line:
+                line = "%s, 7788, %s, 9487"%(get_local_IP(), get_local_IP())
             raw = line.strip().split(',')
             raw = [r.strip() for r in raw]
             break

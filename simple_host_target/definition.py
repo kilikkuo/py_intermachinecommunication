@@ -58,8 +58,6 @@ token = 0
 process_thread = None
 server = None
 def recv_result_from_host(ip_port_pairs, token, callback):
-    print("[TempTask] token(%d) going to recv_result_from_host pipeout "%(token))
-
     ip = ip_port_pairs.get("sender_ip", "")
     port = ip_port_pairs.get("sender_port", "")
     global server
@@ -68,6 +66,7 @@ def recv_result_from_host(ip_port_pairs, token, callback):
         def data_cb(package):
             pass
         def sh_cb(ip_pairs, package):
+            print("[TempTask] token(%d) : recv_result_from_host ... "%(token))
             callback(package)
             pass
         server.run_server(data_cb, callback_info = { 1 : { "pre" : OP_SH_DATA_PREFIX,
@@ -85,17 +84,20 @@ class SendTask(Task):
         self.callback = callback
 
     def run(self):
-        print("[SendTask] token(%d) going to dump and open pipein "%(self.token))
+        print("[SendTask] token(%d) going to dump and create client to connect "%(self.token))
         serialized_package = pickle.dumps(self.wrapper)
+        try:
+            host_ip = self.ip_port_pairs.get("host_ip", "")
+            host_port = self.ip_port_pairs.get("host_port", HOST_PORT)
+            print(host_ip)
+            print(host_port)
+            ip_port = repr(self.ip_port_pairs)
+            c = Client(ip = host_ip, port = host_port)
+            c.send_sh_data(ip_port, serialized_package)
 
-        host_ip = self.ip_port_pairs.get("host_ip", "")
-        host_port = self.ip_port_pairs.get("host_port", HOST_PORT)
-
-        ip_port = repr(self.ip_port_pairs)
-        c = Client(ip = host_ip, port = host_port)
-        c.send_sh_data(ip_port, serialized_package)
-
-        recv_result_from_host(self.ip_port_pairs, self.token, self.callback)
+            recv_result_from_host(self.ip_port_pairs, self.token, self.callback)
+        except:
+            traceback.print_exc()
 
 def send_task_to_host(ip_port_pairs, program_bitstream, program_loader_scripts, callback):
     global process_thread
