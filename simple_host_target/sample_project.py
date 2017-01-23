@@ -55,6 +55,8 @@ def create_zip():
 
 loader_scripts = """
 def bytes_program_loader(ba):
+    import os
+    import shutil
     import pickle
     import zipfile
 
@@ -67,9 +69,17 @@ def bytes_program_loader(ba):
         myzip.extractall('./')
 
     # Execution
-    with open("./program.py") as f:
-        code = compile(f.read(), "program.py", 'exec')
-        exec(code)
+    try:
+        with open("./program.py") as f:
+            code = compile(f.read(), "program.py", 'exec')
+            exec(code)
+    except:
+        if os.path.exists("./program.zip"):
+            os.remove("./program.zip")
+        if os.path.exists("./program.py"):
+            os.remove("./program.py")
+        # if os.path.exists("./program"):
+            # shutil.rmtree("./program")
 
     # Create results !!
     with zipfile.ZipFile('result.zip', 'w') as myzip:

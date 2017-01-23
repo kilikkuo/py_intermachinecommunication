@@ -92,9 +92,12 @@ class ExecutionTarget(object):
     def __ensure_host_IP(self, IP):
         if IP == "":
             print("Empty host IP !, Please enter a valid Host IP ...")
+            print("Or enter yes to use target's IP.")
             try:
                 for line in sys.stdin:
                     processed_IP = line.strip()
+                    if "yes" in processed_IP:
+                        processed_IP = self.target_IP
                     break
                 return processed_IP
             except:
@@ -113,7 +116,7 @@ class ExecutionTarget(object):
             print("Target is running ...")
             import time
             while 1:
-                time.sleep(0.1)
+                time.sleep(0.01)
         except:
             print("[Target][Exception] while lining in ")
         finally:

@@ -27,11 +27,13 @@ class ExecutionHost(object):
     def __ensure_target_IPs(self):
         if len(self.target_IPs) == 0:
             print("Empty target IPs, you should call setup_target_IPs before run !!")
-            print("Or enter at least a valid Target IP ...")
+            print("Enter at least a valid Target IP ... (Or enter yes to use host's IP)")
             try:
                 target_IP = ""
                 for line in sys.stdin:
                     target_IP = line.strip()
+                    if "yes" in target_IP:
+                        target_IP = self.host_IP
                     break
                 self.target_IPs.add(target_IP)
             except:
@@ -52,7 +54,7 @@ class ExecutionHost(object):
         print("Host is running ...")
         while 1:
             try:
-                time.sleep(1)
+                time.sleep(0.01)
             except:
                 traceback.print_exc()
                 break

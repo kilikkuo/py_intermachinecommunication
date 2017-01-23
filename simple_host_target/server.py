@@ -77,7 +77,7 @@ class Server(object):
                                 c.close()
                                 print(" REMOVED & CLOSE a socket client !!!!!!! ")
 
-                time.sleep(1)
+                time.sleep(0.01)
         except:
             traceback.print_exc()
             print("[Exception] during server's loop for connections.")
