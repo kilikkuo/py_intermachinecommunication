@@ -60,6 +60,16 @@ def bytes_program_loader(ba):
     import pickle
     import zipfile
 
+    def cleanup():
+        if os.path.exists("./program.zip"):
+            os.remove("./program.zip")
+        if os.path.exists("./program.py"):
+            os.remove("./program.py")
+        # if os.path.exists("./program"):
+            # shutil.rmtree("./program")
+        if os.path.exists("result.zip"):
+            os.remove("result.zip")
+
     # Convert bytes array data into zip file
     with open("./program.zip", "wb") as fn:
         fn.write(ba)
@@ -74,12 +84,7 @@ def bytes_program_loader(ba):
             code = compile(f.read(), "program.py", 'exec')
             exec(code)
     except:
-        if os.path.exists("./program.zip"):
-            os.remove("./program.zip")
-        if os.path.exists("./program.py"):
-            os.remove("./program.py")
-        # if os.path.exists("./program"):
-            # shutil.rmtree("./program")
+        pass
 
     # Create results !!
     with zipfile.ZipFile('result.zip', 'w') as myzip:
@@ -88,8 +93,14 @@ def bytes_program_loader(ba):
     result_bitstream = None
     with open("result.zip", "rb") as fn:
         result_bitstream = fn.read()
+
+    # Clean up, this temporay files will be executed inside simple_host_target
+    # module folder, you need to clean it up.
+    cleanup()
+
     return result_bitstream
 """
+
 def extract_and_run_zip(ba):
     exec(loader_scripts)
     print(ba)
@@ -99,6 +110,7 @@ def extract_and_run_zip(ba):
 def test_sample_project():
     project_sender()
     sht_proxy_shutdown()
+
     # To test if the zipped program can be executed correctly
     # ba = create_zip()
     # extract_and_run_zip(ba)
