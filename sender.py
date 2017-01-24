@@ -5,10 +5,6 @@ import pickle
 import zipfile
 import threading
 
-PACKAGE_PARENT = '..'
-SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
-sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
-
 from simple_host_target.definition import send_task_to_host,\
                                           sht_proxy_shutdown,\
                                           get_local_IP
@@ -106,8 +102,7 @@ def extract_and_run_zip(ba):
     print(ba)
     locals()['bytes_program_loader'](ba)
 
-# Exported function
-def test_sample_project():
+def test():
     project_sender()
     sht_proxy_shutdown()
 
@@ -117,4 +112,4 @@ def test_sample_project():
     pass
 
 if __name__ == "__main__":
-    test_sample_project()
+    test()

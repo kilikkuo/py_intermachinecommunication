@@ -1,6 +1,17 @@
 # simple_host_target (python3 only for now)
 A package which host and target server could be easily setup (I assume ...) in separate machine to dispatch task and execute then deliver results back.
 
+ - Introduction
+ Intend to send a bunch of python sources (i.e. a folder) to multiple devices to
+ continue the works !
+ Host needs to be configured with several Target's IPs.
+ Target needs to be configured with Host's IP.
+ Sender needs to package and zip its whole project then invoking API |send_task_to_host| to deliver its loader scripts for Target to unzip the project and execute the task.
+ The project program is responsible of saving the calculation results and the results
+ can be easily zipped then send back to sender.
+
+ * Note : Please refer to sender.py for details.
+
  - Installation
 
   -- Method 1
@@ -34,7 +45,7 @@ A package which host and target server could be easily setup (I assume ...) in s
     ```
    * Sender
     ```shellscript
-        $> python3 sample_project.py
+        $> python3 sender.py
     ```
 
   Play as python module
@@ -57,5 +68,5 @@ A package which host and target server could be easily setup (I assume ...) in s
 
    * Sender (After Host & Target is up )
     ```shellscript
-        $> python3 sample_project.py
+        $> python3 sender.py
     ```
