@@ -2,6 +2,7 @@
 A package which host and target server could be easily setup (I assume ...) in separate machine to dispatch task and execute then deliver results back.
 
  - Introduction
+
  Intend to send a bunch of python sources (i.e. a folder) to multiple devices to
  continue the works !
  Host needs to be configured with several Target's IPs.
@@ -10,7 +11,7 @@ A package which host and target server could be easily setup (I assume ...) in s
  The project program is responsible of saving the calculation results and the results
  can be easily zipped then send back to sender.
 
- * Note : Please refer to sender.py for details.
+ Note : Please refer to sender.py for details.
 
  - Installation
 
