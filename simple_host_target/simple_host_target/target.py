@@ -94,11 +94,12 @@ class ExecutionTarget(object):
             print("Empty host IP !, Please enter a valid Host IP ...")
             print("Or enter yes to use target's IP.")
             try:
-                for line in sys.stdin:
-                    processed_IP = line.strip()
-                    if "yes" in processed_IP:
-                        processed_IP = self.target_IP
-                    break
+                msg = sys.stdin.readline()
+                if msg.lower().strip().find('yes') >= 0:
+                    processed_IP = self.target_IP
+                else:
+                    processed_IP = msg.lower().strip()
+                    assert len(processed_IP.split(".")) == 4
                 return processed_IP
             except:
                 print("Something wrong while processing host IP, exit !")
@@ -143,17 +144,14 @@ class ExecutionTarget(object):
 # Exported function
 def create_target():
     target_ip = get_local_IP()
-    print("Creating target @(%s) ... are you sure ? Enter Yes/No."%(target_ip))
+    print("Creating target @(%s) ... Proceed (yes/no)?"%(target_ip))
     try:
-        for line in sys.stdin:
-            msg = line.lower().strip()
-            if msg.find('yes') >= 0:
-                return ExecutionTarget(target_ip)
-            else:
-                break
+        msg = sys.stdin.readline()
+        if msg.lower().strip().find('yes') >= 0:
+            return ExecutionTarget(target_ip)
     except:
         traceback.print_exc()
-    print("\r\nNothing created")
+    print("Nothing created")
     return None
 
 if __name__ == "__main__":

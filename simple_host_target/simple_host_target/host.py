@@ -27,15 +27,17 @@ class ExecutionHost(object):
     def __ensure_target_IPs(self):
         if len(self.target_IPs) == 0:
             print("Empty target IPs, you should call setup_target_IPs before run !!")
-            print("Enter at least a valid Target IP ... (Or enter yes to use host's IP)")
+            print("Enter at least one Target IP or a list of IPs, e.g. 1.1.1.1, 2.3.3.4, 2.1.5.6")
+            print("... or enter yes to use host's IP")
             try:
-                target_IP = ""
-                for line in sys.stdin:
-                    target_IP = line.strip()
-                    if "yes" in target_IP:
-                        target_IP = self.host_IP
-                    break
-                self.target_IPs.add(target_IP)
+                target_IPs = sys.stdin.readline()
+                if "yes" in target_IPs.strip():
+                    target_IP = self.host_IP
+                    self.target_IPs.add(target_IP)
+                else:
+                    IPs = target_IPs.split(",")
+                    for ip in IPs:
+                        self.target_IPs.add(ip.strip())
             except:
                 print("Something wrong while processing target IP, exit !")
                 sys.exit(1)
@@ -112,18 +114,15 @@ class ExecutionHost(object):
 
 def create_host():
     host_ip = get_local_IP()
-    print("Creating host @(%s) ... are you sure ? Enter Yes/No."%(host_ip))
+    print("Creating host @(%s) ... Proceed (yes/no)?"%(host_ip))
     try:
-        for line in sys.stdin:
-            msg = line.lower()
-            if msg.find('yes') >= 0:
-                host = ExecutionHost(host_ip)
-                return host
-            else:
-                break
+        msg = sys.stdin.readline()
+        if msg.lower().find('yes') >= 0:
+            host = ExecutionHost(host_ip)
+            return host
     except:
         traceback.print_exc()
-    print("\r\nNothing created")
+    print("Nothing created")
     return None
 
 if __name__ == "__main__":

@@ -102,9 +102,7 @@ class Server(object):
             post_idx = data.find(info["post"])
             if pre_idx >= 0 and post_idx >= 0 and mid_idx >= 0:
                 ipport = data[pre_idx+len(info["pre"]):mid_idx]
-                # msg_c(a, str(ipport))
                 task = data[mid_idx+len(info["mid"]):post_idx]
-                # msg_c(a, str(task))
                 info["callback"](ipport, task)
                 self.clients_temp_data.pop((c, a))
                 return True
@@ -116,7 +114,6 @@ class Server(object):
         de_idx = data.find(OP_HT_DATA_END)
         if db_idx >= 0 and de_idx >= 0:
             task = data[db_idx+len(OP_HT_DATA_BEGIN):de_idx]
-            # msg_c(a, str(task))
             self.callback_for_package(task)
             self.clients_temp_data.pop((c, a))
             return True
@@ -130,7 +127,7 @@ class Server(object):
 if __name__ == "__main__":
     def package_callbak(package):
         print(package)
-    srv = Server()
+    srv = Server(ip = "127.0.0.1")
     srv.run_server(package_callbak)
     try:
         for line in sys.stdin:
