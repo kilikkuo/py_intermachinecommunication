@@ -2,6 +2,7 @@
 A package which host and target server could be easily setup (I assume ...) in separate machine to dispatch task and execute then deliver results back.
 
  - Installation
+
   -- Method 1
     ```shellscript
         $> pip3 install git+https://github.com/kilikkuo/py_simple_host_target.git
@@ -12,13 +13,15 @@ A package which host and target server could be easily setup (I assume ...) in s
         $> cd py_simple_host_target/simple_host_target
         $> pip3 install .
     ```
-- Uninstallaiton
+ - Uninstallaiton
+
     ```shellscript
         $> pip3 uninstall simple_host_target
     ```
 
  - Give it a try
-  -- Play with python source file
+
+  Play with python source file
    * Host
     ```shellscript
         $> cd py_simple_host_target/simple_host_target/simple_host_target
@@ -34,13 +37,14 @@ A package which host and target server could be easily setup (I assume ...) in s
         $> python3 sample_project.py
     ```
 
-  -- Play as python module
+  Play as python module
    * Host
     ```shellscript
         $> import simple_host_target as sht
         $> host = sht.create_host()
-        <!-- $> host.setup_target_IPs(["TARGET.IP.SAMPLE.1", "TARGET.IP.SAMPLE.2"])  -->
-        <!-- This is optional -->
+        <!-- This is optional
+        $> host.setup_target_IPs(["TARGET.IP.SAMPLE.1", "TARGET.IP.SAMPLE.2"])
+        -->
         $> host.run()
     ```
 
@@ -51,7 +55,7 @@ A package which host and target server could be easily setup (I assume ...) in s
         $> target.run("HOST.IP.SAMPLE.1")
     ```
 
-    * Sender (After Host & Target is up )
-     ```shellscript
-         $> python3 sample_project.py
-     ```
+   * Sender (After Host & Target is up )
+    ```shellscript
+        $> python3 sample_project.py
+    ```
