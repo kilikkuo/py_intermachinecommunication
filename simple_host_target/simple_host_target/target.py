@@ -78,7 +78,7 @@ class ExecutionTarget(object):
     def __init__(self, target_IP):
         self.host_IP = ""
         self.target_IP = target_IP
-        self.thread = TaskThread(name="Execution_thread")
+        self.thread = TaskThread(name="target_thread")
         self.thread.daemon = True
         self.thread.start()
         pass

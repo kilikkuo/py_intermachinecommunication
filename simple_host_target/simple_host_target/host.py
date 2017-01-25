@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import pickle
+import threading
 import traceback
 
 PACKAGE_PARENT = '..'
@@ -12,6 +13,59 @@ from simple_host_target.server import Server
 from simple_host_target.definition import HOST_PORT, TARGET_PORT,\
                         get_local_IP, OP_SH_DATA_PREFIX,\
                         OP_SH_DATA_POSTFIX, OP_SH_DATA_MIDFIX
+from simple_host_target.generaltaskthread import TaskThread, Task
+
+class ResultJob2SenderTask(Task):
+    def __init__(self, host, serialized_result_wrapper):
+        Task.__init__(self)
+        self.host = host
+        self.serialized_result_wrapper = serialized_result_wrapper
+
+    def run(self):
+        print("[Host][Thread] sending result to sender !")
+        c = None
+        try:
+            rw = pickle.loads(self.serialized_result_wrapper)
+            sh_ip_pairs = self.host.dicToken2Pairs.pop(rw.token, "")
+            used_target_ip = self.host.dicTokenIP.pop(rw.token, None)
+            assert used_target_ip != None
+            self.host.return_target_ip(used_target_ip)
+
+            sender_ip = sh_ip_pairs.get("sender_ip", "")
+            sender_port = sh_ip_pairs.get("sender_port", 0)
+            c = Client(ip = sender_ip, port = sender_port)
+            c.send_sh_data("", self.serialized_result_wrapper)
+        except:
+            traceback.print_exc()
+            print("[Host][Thread][Exception] while sending result task !")
+        finally:
+            if c:
+                c.shutdown()
+
+class ExecJob2TargetTask(Task):
+    def __init__(self, host, target_ip, ip_port_pairs, serialized_executor_wrapper):
+        Task.__init__(self)
+        self.host = host
+        self.target_ip = target_ip
+        self.ip_port_pairs = ip_port_pairs
+        self.serialized_executor_wrapper = serialized_executor_wrapper
+        pass
+
+    def run(self):
+        print("[Host][Thread] sending task to target !")
+        c = None
+        try:
+            ew = pickle.loads(self.serialized_executor_wrapper)
+            c = Client(ip = self.target_ip, port = TARGET_PORT)
+            c.send_ht_data(self.serialized_executor_wrapper)
+            self.host.dicTokenIP[ew.token] = self.target_ip
+            self.host.dicToken2Pairs[ew.token] = self.ip_port_pairs
+        except:
+            traceback.print_exc()
+            print("[Host][Thread][Exception] while sending execution task !")
+        finally:
+            if c:
+                c.shutdown()
 
 class ExecutionHost(object):
     def __init__(self, IP):
@@ -19,6 +73,11 @@ class ExecutionHost(object):
         self.target_IPs = set()
         self.dicTokenIP = {}
         self.dicToken2Pairs = {}
+        self.pendings = []
+        self.lock = threading.Lock()
+        self.thread = TaskThread(name = "host_thread")
+        self.thread.daemon = True
+        self.thread.start()
 
     def setup_target_IPs(self, target_IPs):
         assert(type(target_IPs) == list and len(target_IPs) > 0), "Must be a list and size > 0."
@@ -64,53 +123,52 @@ class ExecutionHost(object):
 
     def __shutdown(self):
         print("[Host] shutdown ... begin")
+        if len(self.pendings):
+            print("[Host][Warning] pending jobs are gonna be dropped !")
+            self.pendings = []
+        if self.thread:
+            self.thread.stop()
+            self.thread = None
         if self.server:
             self.server.shutdown()
             self.server = None
         print("[Host] shutdown ... end")
 
-    def __send_result_to_proxy(self, sh_ip_pairs, serialized_result_wrapper):
-        print("result to proxy: %s"%(serialized_result_wrapper))
-        sender_ip = sh_ip_pairs.get("sender_ip", "")
-        sender_port = sh_ip_pairs.get("sender_port", 0)
+    def retrieve_target_ip(self):
+        with self.lock:
+            t_ip = self.target_IPs.pop() if len(self.target_IPs) else None
+            return t_ip
 
-        c = Client(ip = sender_ip, port = sender_port)
-        c.send_sh_data("", serialized_result_wrapper)
-        c.shutdown()
+    def return_target_ip(self, ip):
+        with self.lock:
+            self.target_IPs.add(ip)
+        self.__retrigger_pending_jobs()
+
+    def __retrigger_pending_jobs(self):
+        if len(self.pendings):
+            t_ip = self.retrieve_target_ip()
+            if t_ip != None:
+                dict_IP_pairs, serialized_executor_wrapper = self.pendings.pop(0)
+                job = ExecJob2TargetTask(self, t_ip, dict_IP_pairs, serialized_executor_wrapper)
+                self.thread.addtask(job)
 
     def __recv_from_sender(self, ip_port_pairs, serialized_executor_wrapper):
         dict_IP_pairs = eval(ip_port_pairs.decode("ASCII"))
-        self.__send_execution_task(dict_IP_pairs, serialized_executor_wrapper)
+
+        t_ip = self.retrieve_target_ip()
+        if t_ip == None:
+            print("No available target for new job. Will try later !!")
+            self.pendings.append((dict_IP_pairs, serialized_executor_wrapper))
+            return
+
+        job = ExecJob2TargetTask(self, t_ip, dict_IP_pairs, serialized_executor_wrapper)
+        self.thread.addtask(job)
 
     def __recv_from_target(self, serialized_result_wrapper):
         print("[Host] get result : %s "%(str(serialized_result_wrapper)))
-        rw = pickle.loads(serialized_result_wrapper)
-        sh_ip_pairs = self.dicToken2Pairs.pop(rw.token, "")
-        t_ip = self.dicTokenIP.pop(rw.token, None)
-        if t_ip:
-            self.target_IPs.add(t_ip)
-        self.__send_result_to_proxy(sh_ip_pairs, serialized_result_wrapper)
-        pass
 
-    def __send_execution_task(self, ip_port_pairs, serialized_executor_wrapper):
-        # TODO : Select one of Target to send task
-        t_ip = self.target_IPs.pop() if len(self.target_IPs) else None
-        if t_ip == None:
-            print("No available target for new job. Try later !!")
-            return
-        c = None
-        try:
-            ew = pickle.loads(serialized_executor_wrapper)
-            c = Client(ip = t_ip, port = TARGET_PORT)
-            c.send_ht_data(serialized_executor_wrapper)
-            self.dicTokenIP[ew.token] = t_ip
-            self.dicToken2Pairs[ew.token] = ip_port_pairs
-        except:
-            traceback.print_exc()
-            print("[Host][Exception] while sending execution task !")
-        finally:
-            if c:
-                c.shutdown()
+        job = ResultJob2SenderTask(self, serialized_result_wrapper)
+        self.thread.addtask(job)
 
 def create_host():
     host_ip = get_local_IP()
