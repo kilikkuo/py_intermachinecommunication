@@ -17,7 +17,7 @@ A package which host and target server could be easily setup (I assume ...) in s
 
   -- Method 1
     ```shellscript
-        $> pip3 install git+https://github.com/kilikkuo/py_simple_host_target.git
+        $> pip3 install git+"https://github.com/kilikkuo/py_simple_host_target.git#egg=simple_host_target&subdirectory=simple_host_target"
     ```
   -- Method 2
     ```shellscript
