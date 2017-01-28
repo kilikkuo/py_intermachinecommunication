@@ -47,6 +47,8 @@ def create_zip():
     ba = None
     with open("program.zip", "rb") as fn:
         ba = fn.read()
+    if os.path.exists("program.zip"):
+        os.remove("program.zip")
     return ba
 
 loader_scripts = """
