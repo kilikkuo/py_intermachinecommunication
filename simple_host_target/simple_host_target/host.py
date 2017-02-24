@@ -12,7 +12,8 @@ from simple_host_target.client import Client
 from simple_host_target.server import Server
 from simple_host_target.definition import HOST_PORT, TARGET_PORT,\
                         get_local_IP, OP_SH_DATA_PREFIX,\
-                        OP_SH_DATA_POSTFIX, OP_SH_DATA_MIDFIX
+                        OP_SH_DATA_POSTFIX, OP_SH_DATA_MIDFIX,\
+                        OP_HT_DATA_BEGIN, OP_HT_DATA_END, OP_HT_DATA_MID
 from simple_host_target.generaltaskthread import TaskThread, Task
 
 class ResultJob2SenderTask(Task):
@@ -104,13 +105,14 @@ class ExecutionHost(object):
     def run(self):
         self.__ensure_target_IPs()
         self.server = Server(ip = self.host_IP, port = HOST_PORT)
-        self.server.run_server(self.__recv_from_target,
-                               callback_info = { 1 : { "pre"   : OP_SH_DATA_PREFIX,
-                                                       "post"  : OP_SH_DATA_POSTFIX,
-                                                       "mid"   : OP_SH_DATA_MIDFIX,
-                                                       "callback" : self.__recv_from_sender
-                                                     }
-                                               })
+        self.server.run_server(callbacks_info = { 0 : { "pre" : OP_HT_DATA_BEGIN,
+                                                        "post": OP_HT_DATA_END,
+                                                        "mid" : OP_HT_DATA_MID,
+                                                        "callback"  : self.__recv_from_target },
+                                                  1 : { "pre"   : OP_SH_DATA_PREFIX,
+                                                        "post"  : OP_SH_DATA_POSTFIX,
+                                                        "mid"   : OP_SH_DATA_MIDFIX,
+                                                        "callback" : self.__recv_from_sender }})
 
         print("Host is running ...")
         while 1:

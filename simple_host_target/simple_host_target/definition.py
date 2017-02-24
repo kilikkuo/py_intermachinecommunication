@@ -1,4 +1,11 @@
+import os
+import sys
+PACKAGE_PARENT = '..'
+SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
+sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
+
 OP_HT_DATA_BEGIN       = bytearray("HTDTBegin", "ASCII")
+OP_HT_DATA_MID         = bytearray("HTDTMid", "ASCII")
 OP_HT_DATA_END         = bytearray("HTDTEnd", "ASCII")
 OP_SH_DATA_PREFIX       = bytearray("SHDTPre", "ASCII")
 OP_SH_DATA_MIDFIX       = bytearray("SHDTMid", "ASCII")
@@ -7,7 +14,6 @@ OP_SH_DATA_POSTFIX      = bytearray("SHDTPost", "ASCII")
 HOST_PORT   = 7788
 TARGET_PORT = 5566
 
-import os
 import socket
 import pickle
 import traceback
@@ -69,10 +75,14 @@ def recv_result_from_host(ip_port_pairs, token, callback):
             print("[TempTask] token(%d) : recv_result_from_host ... "%(token))
             callback(package)
             pass
-        server.run_server(data_cb, callback_info = { 1 : { "pre" : OP_SH_DATA_PREFIX,
-                                                           "post": OP_SH_DATA_POSTFIX,
-                                                           "mid" : OP_SH_DATA_MIDFIX,
-                                                           "callback" : sh_cb } })
+        server.run_server(callbacks_info = { 0 : { "pre" : OP_SH_DATA_PREFIX,
+                                                   "post": OP_SH_DATA_POSTFIX,
+                                                   "mid" : OP_SH_DATA_MIDFIX,
+                                                   "callback" : sh_cb },
+                                             1 : { "pre" : OP_HT_DATA_BEGIN,
+                                                   "post": OP_HT_DATA_END,
+                                                   "mid" : OP_HT_DATA_MID,
+                                                   "callback"  : data_cb }})
 
 
 class SendTask(Task):
