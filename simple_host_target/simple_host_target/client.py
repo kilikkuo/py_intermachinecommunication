@@ -29,10 +29,10 @@ class Client(object):
         self.send(serialized_task)
         self.send(OP_SH_DATA_POSTFIX)
 
-    def send_ht_data(self, serialized_wrapper = ""):
+    def send_ht_data(self, info_package):
         # Sample data to be sent !
         self.send(OP_HT_DATA_BEGIN)
-        self.send(serialized_wrapper)
+        self.send(info_package)
         self.send(OP_HT_DATA_END)
 
     def send(self, msg):

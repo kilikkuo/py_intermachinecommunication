@@ -57,8 +57,11 @@ class ExecJob2TargetTask(Task):
         c = None
         try:
             ew = pickle.loads(self.serialized_executor_wrapper)
+            print(self.target_ip)
             c = Client(ip = self.target_ip, port = TARGET_PORT)
-            c.send_ht_data(self.serialized_executor_wrapper)
+            data = { "cmd" : ew.get_command(),
+                     "sew"     : self.serialized_executor_wrapper }
+            c.send_ht_data(repr(data))
             self.host.dicTokenIP[ew.token] = self.target_ip
             self.host.dicToken2Pairs[ew.token] = self.ip_port_pairs
         except:
@@ -74,6 +77,8 @@ class ExecutionHost(object):
         self.target_IPs = set()
         self.dicTokenIP = {}
         self.dicToken2Pairs = {}
+        self.dicSender2Targets = {}
+
         self.pendings = []
         self.lock = threading.Lock()
         self.thread = TaskThread(name = "host_thread")
@@ -138,13 +143,15 @@ class ExecutionHost(object):
 
     def retrieve_target_ip(self):
         with self.lock:
-            t_ip = self.target_IPs.pop() if len(self.target_IPs) else None
+            # t_ip = self.target_IPs.pop() if len(self.target_IPs) else None
+            # TODO : target IP may be reused as we're designing command+task system.
+            t_ip = list(self.target_IPs)[0] if len(self.target_IPs) else None
             return t_ip
 
     def return_target_ip(self, ip):
         with self.lock:
             self.target_IPs.add(ip)
-        self.__retrigger_pending_jobs()
+        # self.__retrigger_pending_jobs()
 
     def __retrigger_pending_jobs(self):
         if len(self.pendings):
@@ -162,6 +169,11 @@ class ExecutionHost(object):
             print("No available target for new job. Will try later !!")
             self.pendings.append((dict_IP_pairs, serialized_executor_wrapper))
             return
+
+        sender_ip = dict_IP_pairs.get("sender_ip", "")
+        sender_port = dict_IP_pairs.get("sender_port", 0)
+        if t_ip not in self.dicSender2Targets.setdefault((sender_ip, sender_port), []):
+            self.dicSender2Targets[(sender_ip, sender_port)].append(t_ip)
 
         job = ExecJob2TargetTask(self, t_ip, dict_IP_pairs, serialized_executor_wrapper)
         self.thread.addtask(job)

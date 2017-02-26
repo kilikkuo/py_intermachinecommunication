@@ -5,7 +5,7 @@ import pickle
 import zipfile
 import threading
 
-from definition import send_task_to_host, sht_proxy_shutdown, get_local_IP
+from definition import send_info_to_host, sht_proxy_shutdown, get_local_IP
 
 def project_sender():
     try:
@@ -27,11 +27,21 @@ def project_sender():
                           "sender_ip"   : raw[2],
                           "sender_port" : int(raw[3])}
         print("[Sender] Press s + <Enter> to send a task !")
+        print("[Sender] Press p + <Enter> to send a command !")
         for line in sys.stdin:
             if "s" in line:
-                print("Got s, going to send ... ")
+                print("Got s, going to send ... task ")
                 ba = create_zip()
-                send_task_to_host(ip_port_pairs, ba, loader_scripts, project_reciver)
+                info = { "bitstream" : ba,
+                         "loader"    : loader_scripts,
+                         "callback" : project_reciver}
+                send_info_to_host(ip_port_pairs, info)
+            elif "p" in line:
+                print("Got p, going to send ... command ")
+                command = "p"
+                info = { "command" : command,
+                         "callback" : project_reciver}
+                send_info_to_host(ip_port_pairs, info)
     except:
         sht_proxy_shutdown()
         pass
@@ -52,6 +62,7 @@ def create_zip():
 loader_scripts = """
 def bytes_program_loader(ba):
     import os
+    import time
     import shutil
     import pickle
     import zipfile
@@ -79,6 +90,7 @@ def bytes_program_loader(ba):
         with open("./program.py") as f:
             code = compile(f.read(), "program.py", 'exec')
             exec(code)
+        time.sleep(5)
     except:
         pass
 

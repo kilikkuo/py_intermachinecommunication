@@ -7,7 +7,7 @@ A package which host and target server could be easily setup (I assume ...) in s
  continue the works !
  Host needs to be configured with several Target's IPs.
  Target needs to be configured with Host's IP.
- Sender needs to package and zip its whole project then invoking API |send_task_to_host| to deliver its loader scripts for Target to unzip the project and execute the task.
+ Sender needs to package and zip its whole project then invoking API |send_info_to_host| to deliver its loader scripts for Target to unzip the project and execute the task.
  The project program is responsible of saving the calculation results and the results
  can be easily zipped then send back to sender.
 

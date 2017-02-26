@@ -5,7 +5,7 @@ import pickle
 import zipfile
 import threading
 
-from simple_host_target.definition import send_task_to_host,\
+from simple_host_target.definition import send_info_to_host,\
                                           sht_proxy_shutdown,\
                                           get_local_IP
 
@@ -31,9 +31,18 @@ def project_sender():
         print("[Sender] Press s + <Enter> to send a task !")
         for line in sys.stdin:
             if "s" in line:
-                print("Got s, going to send ... ")
+                print("Got s, going to send ... task ")
                 ba = create_zip()
-                send_task_to_host(ip_port_pairs, ba, loader_scripts, project_reciver)
+                info = { "bitstream" : ba,
+                         "loader"    : loader_scripts,
+                         "callback" : project_reciver}
+                send_info_to_host(ip_port_pairs, info)
+            elif "p" in line:
+                print("Got p, going to send ... command ")
+                command = "p"
+                info = { "command" : command,
+                         "callback" : project_reciver}
+                send_info_to_host(ip_port_pairs, info)
     except:
         sht_proxy_shutdown()
         pass

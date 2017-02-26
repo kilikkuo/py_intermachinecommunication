@@ -43,16 +43,19 @@ class ResultWrapper:
 
 # Exported definitions
 class ExecutorWrapper(object):
-    def __init__(self, token, bytes_program, bytes_program_loader):
+    def __init__(self, token, bytes_program, bytes_program_loader, command):
         # To identify sender-host-target relationship
         self.token = token
 
+        # A string which indicates the operation that executor should take.
+        self.command = command
         # A bytesArray which represents the serialized program.
         self.bytes_program = bytes_program
         # The loader to help you load the serialized program and
         # execute it !
         self.bytes_program_loader = bytes_program_loader
-
+    def get_command(self):
+        return self.command
     def execute(self):
         exec(self.bytes_program_loader)
         data = locals()['bytes_program_loader'](self.bytes_program)
@@ -86,12 +89,15 @@ def recv_result_from_host(ip_port_pairs, token, callback):
 
 
 class SendTask(Task):
-    def __init__(self, ip_port_pairs, token, program_bitstream, program_loader_scripts, callback):
+    def __init__(self, ip_port_pairs, token, info):
         Task.__init__(self)
         self.ip_port_pairs = ip_port_pairs
         self.token = token
-        self.wrapper = ExecutorWrapper(token, program_bitstream, program_loader_scripts)
-        self.callback = callback
+        program_bitstream = info.get("bitstream", None)
+        program_loader_scripts = info.get("loader", None)
+        command = info.get("command", "")
+        self.callback = info.get("callback", None)
+        self.wrapper = ExecutorWrapper(token, program_bitstream, program_loader_scripts, command)
 
     def run(self):
         print("[SendTask] token(%d) going to dump and create client to connect "%(self.token))
@@ -99,8 +105,7 @@ class SendTask(Task):
         try:
             host_ip = self.ip_port_pairs.get("host_ip", "")
             host_port = self.ip_port_pairs.get("host_port", HOST_PORT)
-            print(host_ip)
-            print(host_port)
+            print(host_ip, host_port)
             ip_port = repr(self.ip_port_pairs)
             c = Client(ip = host_ip, port = host_port)
             c.send_sh_data(ip_port, serialized_package)
@@ -109,7 +114,8 @@ class SendTask(Task):
         except:
             traceback.print_exc()
 
-def send_task_to_host(ip_port_pairs, program_bitstream, program_loader_scripts, callback):
+
+def send_info_to_host(ip_port_pairs, info):
     global process_thread
     global token
     if process_thread == None:
@@ -117,7 +123,7 @@ def send_task_to_host(ip_port_pairs, program_bitstream, program_loader_scripts, 
         process_thread.start()
     try:
         token += 1
-        task = SendTask(ip_port_pairs, token, program_bitstream, program_loader_scripts, callback)
+        task = SendTask(ip_port_pairs, token, info)
         process_thread.addtask(task)
     except:
         traceback.print_exc()

@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import pickle
 import traceback
 import threading
@@ -27,35 +28,45 @@ def execute_task(serialized_wrapper, conn):
         conn.send(serialized_result_wrapper)
     except:
         traceback.print_exc()
-    finally:
-        conn.close()
 
-def launch_process(cb_to_target, wrapper):
-    assert callable(cb_to_target)
-    # Launch a python process to execute task.
-    result = None
-    try:
-        p_conn, c_conn = Pipe()
-        p = Process(target=execute_task, args=(wrapper, c_conn,))
-        p.start()
-        print(" >>>>> Process launched !!")
-        result = p_conn.recv()
-        p.join()
-    except:
-        result = None
-        traceback.print_exc()
-    finally:
-        cb_to_target(result)
-
-class SpawnExecuteTask(Task):
-    def __init__(self, recv_from_executor, serialized_wrapper):
+class WPExecutorTask(Task):
+    def __init__(self, target_func, wrapper, conn):
         Task.__init__(self)
-        self.recv_cb = recv_from_executor
-        self.serialized_wrapper = serialized_wrapper
-        pass
+        self.target_func = target_func
+        self.executor_wrapper = wrapper
+        self.conn = conn
+
     def run(self):
-        launch_process(self.recv_cb, self.serialized_wrapper)
-        pass
+        print("[WP][ExecutorTask] is running ....")
+        time.sleep(5)
+        self.target_func(self.executor_wrapper, self.conn)
+
+class WorkerProcess(Process):
+    def __init__(self, target_func, wrapper, conn):
+        Process.__init__(self)
+        self.target_func = target_func
+        self.conn = conn
+        self.wrapper = wrapper
+
+    def run(self):
+        print("[WP] is running ....")
+        import time
+        proc_name = self.name
+
+        thread = TaskThread(name="[WP][WorkerThread]")
+        thread.start()
+        # Create the executor task to load script.
+        wpe_task = WPExecutorTask(self.target_func, self.wrapper, self.conn)
+        thread.addtask(wpe_task)
+
+        # This while loop is to read command from sender.
+        # TODO : deliver this command to WPExecutorTask
+        while True:
+            time.sleep(0.01)
+            if self.conn.poll():
+                msg = self.conn.recv()
+                print("[WP] received msg(%s)"%(msg))
+        return
 
 class SendResultToHost(Task):
     def __init__(self, host_ip, host_port, serialized_result_wrapper):
@@ -76,20 +87,56 @@ class SendResultToHost(Task):
             if c:
                 c.shutdown()
 
+class MonitorWorkerTask(Task):
+    def __init__(self, t_conn, callback, evt):
+        Task.__init__(self)
+        self.t_conn = t_conn
+        self.callback = callback
+        self.evt = evt
+
+    def run(self):
+        print("[TP][Monitor] monitoring ... ")
+        while True:
+            time.sleep(0.01)
+            if self.evt.is_set():
+                print("[TP][Monitor] stop monitoring ... ")
+                break
+            # Receiving results from Worker Process, and callback to Target
+            if self.t_conn and self.t_conn.poll():
+                msg = self.t_conn.recv()
+                print("[TP] received result from WP : %s"%(msg))
+                self.callback(msg)
+
 class ExecutionTarget(object):
     def __init__(self, target_IP):
         self.host_IP = ""
         self.target_IP = target_IP
+        self.t_conn, self.w_conn = None, None
+
+        self.monitor_break_evt = threading.Event()
+
         self.thread = TaskThread(name="target_thread")
         self.thread.daemon = True
         self.thread.start()
+        self.monitor = TaskThread(name = "monitor_thread")
+        self.monitor.daemon = True
+        self.monitor.start()
+
+        self.worker_process = None
         pass
 
     def __shutdown(self):
         if self.thread:
             self.thread.stop()
+        if self.monitor:
+            self.monitor_break_evt.set()
+            time.sleep(0.5)
+            self.monitor.stop()
         if self.server:
             self.server.shutdown()
+        self.thread = None
+        self.monitor = None
+        self.server = None
 
     def __ensure_host_IP(self, IP):
         if IP == "":
@@ -129,20 +176,53 @@ class ExecutionTarget(object):
             self.__shutdown()
         pass
 
+    def __terminate_worker_and_monitor(self):
+        if self.worker_process and self.worker_process.is_alive():
+            print("[Target][P] terminating worker process ... ")
+            self.monitor_break_evt.set()
+            self.w_conn.close()
+            self.w_conn = None
+            self.t_conn.close()
+            self.t_conn = None
+            self.worker_process.terminate()
+            self.worker_process = None
+
     def __recv_from_executor(self, serialized_result_wrapper):
         print("[Target][P] result : %s "%(str(serialized_result_wrapper)))
         task = SendResultToHost(self.host_IP, HOST_PORT, serialized_result_wrapper)
         self.thread.addtask(task)
+        self.__terminate_worker_and_monitor()
 
-    def __recv_from_host(self, serialized_executor_wrapper):
-        print("[Target] __recv_from_host .... >>>> ")
-        if len(serialized_executor_wrapper) == 0:
+    def __recv_from_host(self, info_package):
+        #        { "cmd" : "XXX",
+        #          "sew" : serialized_executor_wrapper}
+        print("[Target] __recv_from_host .... >>>>")
+        if len(info_package) == 0:
             print("No package bytes !! ")
             return
         try:
-            task = SpawnExecuteTask(self.__recv_from_executor,
-                                    serialized_executor_wrapper)
-            self.thread.addtask(task)
+            if self.t_conn == None and self.w_conn == None:
+                self.t_conn, self.w_conn = Pipe()
+                self.monitor_break_evt.clear()
+                self.monitor.addtask(MonitorWorkerTask(self.t_conn,
+                                                       self.__recv_from_executor,
+                                                       self.monitor_break_evt))
+            assert self.t_conn != None and self.w_conn != None
+
+            info = eval(info_package)
+            command = info.get("cmd", "")
+            serialized_executor_wrapper = info.get("sew", "")
+            print("[Target] recv - cmd(%s) / sew(%s)"%(command, serialized_executor_wrapper))
+            if command and self.worker_process:
+                self.t_conn.send(command)
+            elif self.worker_process == None:
+                self.worker_process = WorkerProcess(execute_task,
+                                                    serialized_executor_wrapper,
+                                                    self.w_conn)
+                self.worker_process.start()
+                print(" >>>>> Worker Process launched !!")
+            else:
+                assert False, "Not supported yet !!"
         except:
             traceback.print_exc()
 
